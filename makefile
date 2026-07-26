@@ -1,54 +1,38 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g
+CFLAGS = -Wall -Wextra -g -Iinclude
 
-OBJS = \
-	main.o \
-	tracer.o \
-	syscall.o \
-	memory.o \
-	file_monitor.o \
-	process_monitor.o \
-	memory_monitor.o \
-	network_monitor.o \
-	fd_tables.o \
-	report.o
-all: linux_syscall_monitor basic_target
+NAME = linux_syscall_monitor
 
-linux_syscall_monitor: $(OBJS)
-	$(CC) $(CFLAGS) -o linux_syscall_monitor $(OBJS)
+SRC = \
+	src/main.c \
+	src/tracer.c \
+	src/syscall.c \
+	src/memory.c \
+	src/file_monitor.c \
+	src/process_monitor.c \
+	src/memory_monitor.c \
+	src/network_monitor.c \
+	src/fd_tables.c \
+	src/report.c
 
-basic_target: basic_target.c
-	$(CC) $(CFLAGS) -o basic_target basic_target.c
+OBJS = $(SRC:.c=.o)
 
-main.o: main.c
-	$(CC) $(CFLAGS) -c main.c
+TARGET = src/test.c
 
-tracer.o: tracer.c
-	$(CC) $(CFLAGS) -c tracer.c
+all: $(NAME) basic_target
 
-syscall.o: syscall.c
-	$(CC) $(CFLAGS) -c syscall.c
+$(NAME): $(OBJS)
+	$(CC) $(CFLAGS) -o $(NAME) $(OBJS)
 
-memory.o: memory.c
-	$(CC) $(CFLAGS) -c memory.c
+basic_target: $(TARGET)
+	$(CC) $(CFLAGS) -o basic_target $(TARGET)
 
-file_monitor.o: file_monitor.c
-	$(CC) $(CFLAGS) -c file_monitor.c
-
-process_monitor.o: process_monitor.c
-	$(CC) $(CFLAGS) -c process_monitor.c
-
-memory_monitor.o: memory_monitor.c
-	$(CC) $(CFLAGS) -c memory_monitor.c
-
-network_monitor.o: network_monitor.c
-	$(CC) $(CFLAGS) -c network_monitor.c
-
-fd_tables.o: fd_tables.c
-	$(CC) $(CFLAGS) -c fd_tables.c
-
-report.o: report.c
-	$(CC) $(CFLAGS) -c report.c
+src/%.o: src/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f *.o linux_syscall_monitor basic_target report.html
+	rm -f $(OBJS) $(NAME) basic_target report.html
+
+re: clean all
+
+.PHONY: all clean re

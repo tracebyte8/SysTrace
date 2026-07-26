@@ -7,4 +7,5 @@
   void get_fd_exit(struct user_regs_struct *regs);
   char *search_fd(int fd);
   void remove_fd(int fd);
+  void get_socket_entry(void);
 #endif

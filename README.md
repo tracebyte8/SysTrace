@@ -6,57 +6,106 @@
 ![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 ![GCC](https://img.shields.io/badge/GCC-CC342D?style=for-the-badge&logo=gnu&logoColor=white)
 ![ptrace](https://img.shields.io/badge/ptrace-System%20Calls-blue?style=for-the-badge)
+![HTML](https://img.shields.io/badge/HTML-Report-orange?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 </p>
 
-A lightweight **Linux system call monitor** written in **C** using the **ptrace** API.
+A lightweight **Linux System Call Monitor** written in **C** using the Linux **ptrace** API.
 
-The tool traces a target process, monitors selected system calls, and generates an HTML report summarizing process, file, memory, and network activity.
+This project traces a running process, intercepts Linux system calls, and generates an **HTML report** describing file activity, process creation, memory operations, and network events.
+
+The project was built for educational purposes to better understand:
+
+- Linux internals
+- Process tracing
+- ptrace
+- System calls
+- Operating Systems
 
 ---
 
-## Features
+# Features
 
-### Process Monitoring
+## Process Monitor
 
-- `fork`
+Tracks process-related system calls.
+
+Supported:
+
 - `execve`
-- `wait`
+- `fork`
+- `waitpid`
 
-### File Monitoring
+---
+
+## File Monitor
+
+Tracks file activity.
+
+Supported:
 
 - `open`
 - `openat`
 - `read`
 - `close`
 
-### Memory Monitoring
+---
+
+## Memory Monitor
+
+Tracks memory management.
+
+Supported:
 
 - `mmap`
 - `mprotect`
 - `munmap`
 
-### Network Monitoring
+---
 
-- *(In progress)*
+## Network Monitor
 
-### Reporting
+Current progress:
 
-- HTML report generation
-- CSS-styled output
+- socket
+- bind
+- listen
+- accept
+- connect
+- send
+- recv
+
 
 ---
 
-## Requirements
+## HTML Report
 
-- Linux
-- GCC
-- Make
+After execution the monitor generates an HTML report containing:
+
+- Process activity
+- File operations
+- Memory operations
+- Network operations
+- Summary statistics
 
 ---
 
-## Build
+# Current Status
+
+| Module | Status |
+|---------|--------|
+| Process Monitor | ✅ Complete |
+| File Monitor | ✅ Complete |
+| Memory Monitor | ✅ Complete |
+| Network Monitor | 🚧 In Progress |
+| HTML Report | ✅ Working |
+| CSS Styling | ✅ Working |
+
+---
+
+
+# Build
 
 ```bash
 make
@@ -64,69 +113,125 @@ make
 
 ---
 
-## Usage
+# Usage
 
-Specify the target executable in `main.c`:
+Choose the target program inside `src/main.c`.
+
+Example:
 
 ```c
-report_start("./your_program");
-trace("./your_program");
+report_start("./target");
+trace("./target");
 report_finish();
 ```
 
-Compile and run:
+Compile:
 
 ```bash
 make
+```
+
+Run:
+
+```bash
 ./linux_syscall_monitor
 ```
 
-After execution, the generated report will be available as:
+The generated report will appear as:
 
 ```text
 report.html
 ```
 
-Open it in any web browser.
+Open it with any browser.
 
 ---
 
-## Project Structure
+# Project Structure
 
 ```text
 .
-├── main.c
-├── tracer.c
-├── tracer.h
-├── syscall.c
-├── syscall.h
-├── process_monitor.c
-├── process_monitor.h
-├── file_monitor.c
-├── file_monitor.h
-├── memory_monitor.c
-├── memory_monitor.h
-├── network_monitor.c
-├── network_monitor.h
-├── fd_tables.c
-├── fd_tables.h
-├── report.c
-├── report.h
+├── include/
+│   ├── fd_tables.h
+│   ├── file_monitor.h
+│   ├── memory_monitor.h
+│   ├── network_monitor.h
+│   ├── process_monitor.h
+│   ├── report.h
+│   ├── syscall.h
+│   └── tracer.h
+│
+├── src/
+│   ├── main.c
+│   ├── tracer.c
+│   ├── syscall.c
+│   ├── fd_tables.c
+│   ├── file_monitor.c
+│   ├── process_monitor.c
+│   ├── memory_monitor.c
+│   ├── network_monitor.c
+│   ├── report.c
+│   ├── memory.c
+│   └── test.c
+│
 ├── style.css
-└── Makefile
+├── Makefile
+└── README.md
 ```
 
 
-## Disclaimer
+---
 
-This project is intended for **educational and research purposes**.
 
-It demonstrates Linux process tracing and system call monitoring using the **ptrace** interface.
+## Completed
 
-Use this software only on processes that you own or are authorized to inspect. The author is not responsible for any misuse, data loss, or legal consequences resulting from its use.
+- [x] ptrace tracer
+- [x] Process monitor
+- [x] File monitor
+- [x] Memory monitor
+- [x] HTML report generation
+- [x] CSS report styling
+
 
 ---
 
-## License
+# Learning Objectives
 
-This project is licensed under the **MIT License**.
+This project demonstrates practical usage of:
+
+- ptrace
+- waitpid
+- fork
+- execve
+- user_regs_struct
+- Linux system calls
+- Process tracing
+- File descriptor management
+- HTML report generation
+- Linux memory management
+
+---
+
+# Disclaimer
+
+This project is intended **only for educational and research purposes**.
+
+It demonstrates Linux process tracing through the **ptrace** interface.
+
+Use this software only on processes that you own or have permission to inspect.
+
+The author is **not responsible** for misuse, data loss, or legal consequences resulting from the use of this software.
+
+---
+
+# License
+
+This project is released under the **MIT License**.
+
+---
+
+<p align="center">
+
+Made with ❤️ in C on Linux.
+
+</p>

@@ -73,8 +73,8 @@ report_memory_section_munmap(
             }else{
             printf("== MUNMAP EXIT ==\n");
             printf("result : FAILED");
-            report_memory_section_munmap(pid, NULL, regs->rdi, regs->rsi);
-            }
+report_memory_section_munmap( pid,regs->rdi,regs->rsi,regs->rax);        
+    }
         }
         break;
 
