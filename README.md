@@ -207,35 +207,6 @@ Open `report.html` in your browser to inspect the execution report.
 ```
 
 
----
-
-
-## Completed
-
-- [x] ptrace tracer
-- [x] Process monitor
-- [x] File monitor
-- [x] Memory monitor
-- [x] HTML report generation
-- [x] CSS report styling
-
-
----
-
-# Learning Objectives
-
-This project demonstrates practical usage of:
-
-- ptrace
-- waitpid
-- fork
-- execve
-- user_regs_struct
-- Linux system calls
-- Process tracing
-- File descriptor management
-- HTML report generation
-- Linux memory management
 
 ---
 
