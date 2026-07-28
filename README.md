@@ -98,7 +98,8 @@ After execution the monitor generates an HTML report containing:
 | Process Monitor | ✅ Complete |
 | File Monitor | ✅ Complete |
 | Memory Monitor | ✅ Complete |
-| Network Monitor | 🚧 In Progress |
+| Network Monitor | ✅ Complete |
+| save LOGS  | 🚧 In Progress |
 | HTML Report | ✅ Working |
 | CSS Styling | ✅ Working |
 
