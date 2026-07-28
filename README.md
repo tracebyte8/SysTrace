@@ -105,7 +105,6 @@ After execution the monitor generates an HTML report containing:
 
 ---
 
-
 # Build
 
 ```bash
@@ -116,45 +115,69 @@ make
 
 # Usage
 
-Choose the target program inside `src/main.c`.
+The project includes a sample target program built from:
 
-Example:
-
-```c
-report_start("./target");
-trace("./target");
-report_finish();
+```text
+src/test.c
 ```
 
-Compile:
+Build and run the monitor with:
 
 ```bash
 make
+make run
 ```
 
-Run:
+The `run` target will automatically:
+
+1. Build the Linux System Call Monitor.
+2. Build the sample target (`basic_target`).
+3. Execute the monitor against the sample target.
+
+If you want to monitor your own program, replace the source file specified by the `TARGET` variable in the `Makefile`:
+
+```make
+TARGET = src/test.c
+```
+
+For example:
+
+```make
+TARGET = src/my_program.c
+```
+
+Then rebuild and run:
 
 ```bash
-./linux_syscall_monitor
+make clean
+make
+make run
 ```
 
-The generated report will appear as:
+---
+
+After execution, the following files will be generated:
 
 ```text
-report.html
+report.html   -> HTML report containing monitored system calls
+alert.txt     -> Security alerts generated during execution
 ```
 
-Open it with any browser.
+Open `report.html` in your browser to inspect the execution report.
 
 ---
 
 # Project Structure
 
 ```text
+
+```text
 .
 ├── include/
+│   ├── alert.h
 │   ├── fd_tables.h
 │   ├── file_monitor.h
+│   ├── memory.h
 │   ├── memory_monitor.h
 │   ├── network_monitor.h
 │   ├── process_monitor.h
@@ -166,15 +189,18 @@ Open it with any browser.
 │   ├── main.c
 │   ├── tracer.c
 │   ├── syscall.c
+│   ├── memory.c
 │   ├── fd_tables.c
 │   ├── file_monitor.c
 │   ├── process_monitor.c
 │   ├── memory_monitor.c
 │   ├── network_monitor.c
+│   ├── alert.c
 │   ├── report.c
-│   ├── memory.c
 │   └── test.c
 │
+├── alert.txt          # Runtime security alerts
+├── report.html        # Generated after execution
 ├── style.css
 ├── Makefile
 └── README.md
