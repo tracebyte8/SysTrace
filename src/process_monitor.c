@@ -2,6 +2,7 @@
 #include "memory.h"
 #include <sys/syscall.h>
 #include "report.h"
+#include "alert.h"
 
 #include <stdio.h>
 #include <sys/syscall.h>
@@ -18,6 +19,7 @@ char filename[256] = {0};
 
     if (entering) {
         read_string(pid, regs->rdi, filename, sizeof(filename));
+        write_alert("the process change his prog !");
         printf("========== EXECVE ==========\n");
         printf("Program : %s\n", filename);
         printf("============================\n");
@@ -29,6 +31,7 @@ char filename[256] = {0};
      case SYS_fork:
       
         printf("[%d] FORK REQUESTED ====/n",pid);
+        write_alert("the father create another process !");
         report_process_section_fork(pid);
 
      break;

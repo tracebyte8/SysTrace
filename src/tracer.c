@@ -14,7 +14,7 @@
 #include "memory_monitor.h"
 #include "network_monitor.h"
 #include "fd_tables.h"
-
+#include "alert.h"
 struct traced_process {
 
     pid_t pid;
@@ -57,7 +57,7 @@ void trace(char *program)
 
     pid_t pid = fork();
     int status;
-
+    open_alert();
     if (pid == -1) {
         perror("fork");
         return;
@@ -233,4 +233,5 @@ void trace(char *program)
 
         traced[current].entering = !traced[current].entering;
     }
+    close_alert();
 }

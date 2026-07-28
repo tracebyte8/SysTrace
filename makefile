@@ -13,6 +13,7 @@ SRC = \
 	src/memory_monitor.c \
 	src/network_monitor.c \
 	src/fd_tables.c \
+	src/alert.c \
 	src/report.c
 
 OBJS = $(SRC:.c=.o)
@@ -30,9 +31,12 @@ basic_target: $(TARGET)
 src/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+run: $(NAME) basic_target
+	./$(NAME) ./basic_target
+
 clean:
 	rm -f $(OBJS) $(NAME) basic_target report.html
 
 re: clean all
 
-.PHONY: all clean re
+.PHONY: all clean re run
