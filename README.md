@@ -84,20 +84,6 @@ After execution the monitor generates an HTML report containing:
 
 ---
 
-# Current Status
-
-| Module | Status |
-|---------|--------|
-| Process Monitor | ✅ Complete |
-| File Monitor | ✅ Complete |
-| Memory Monitor | ✅ Complete |
-| Network Monitor | ✅ Complete |
-| save LOGS  | 🚧 In Progress |
-| HTML Report | ✅ Working |
-| CSS Styling | ✅ Working |
-
----
-
 # Build
 
 ```bash
@@ -207,28 +193,18 @@ alert.json
 │   ├── report.c
 │   └── test.c
 │
-├── alert.txt          # Runtime security alerts
-├── report.html        # Generated after execution
+├── report.html        
+├── log.txt          
 ├── style.css
 ├── Makefile
 └── README.md
 =======
 ```
-include/
-src/
-Makefile
-README.md
-```
 
 
 ---
 
-# Disclaimer
 
-This project is intended **only for educational and research purposes**.
-
-It demonstrates Linux process tracing through the **ptrace** interface.
----
 
 ## Roadmap
 
@@ -251,11 +227,11 @@ It demonstrates Linux process tracing through the **ptrace** interface.
 This project is intended only for educational and research purposes.
 
 It demonstrates Linux process tracing through the ptrace interface.
->>>>>>> c804dbc (add basic rule engine and save high alerts in json file .)
 
 Use this software only on processes that you own or have permission to inspect.
 
 The author is not responsible for misuse, data loss, or legal consequences resulting from the use of this software.
+
 ---
 
 ## License
