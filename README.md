@@ -141,16 +141,6 @@ make run
 
 ---
 
-After execution, the following files will be generated:
-
-```text
-report.html   -> HTML report containing monitored system calls
-alert.txt     -> Security alerts generated during execution
-```
-
-Open `report.html` in your browser to inspect the execution report.
-
-
 
 Generated files:
 
@@ -172,7 +162,6 @@ alert.json
 │   ├── fd_tables.h
 │   ├── file_monitor.h
 │   ├── rules.h
-│   ├── alert.h
 │   ├── event.h
 │   ├── memory.h
 │   ├── memory_monitor.h
