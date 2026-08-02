@@ -14,7 +14,8 @@ SRC = \
 	src/network_monitor.c \
 	src/fd_tables.c \
 	src/alert.c \
-	src/report.c
+	src/report.c \
+	src/rules.c
 
 OBJS = $(SRC:.c=.o)
 

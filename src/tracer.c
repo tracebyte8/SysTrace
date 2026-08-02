@@ -15,6 +15,9 @@
 #include "network_monitor.h"
 #include "fd_tables.h"
 #include "alert.h"
+#include "event.h"
+#include "rules.h"
+
 struct traced_process {
 
     pid_t pid;
@@ -50,7 +53,7 @@ void set_trace_options(pid_t pid)
 }
 }
 
-
+/// ////////////
 void trace(char *program)
 
 {

@@ -4,42 +4,35 @@
 
 ![C](https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
-![GCC](https://img.shields.io/badge/GCC-CC342D?style=for-the-badge&logo=gnu&logoColor=white)
 ![ptrace](https://img.shields.io/badge/ptrace-System%20Calls-blue?style=for-the-badge)
-![HTML](https://img.shields.io/badge/HTML-Report-orange?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 </p>
 
-A lightweight **Linux System Call Monitor** written in **C** using the Linux **ptrace** API.
+A lightweight **Linux System Call Monitor** written in **C** using the **ptrace** API.
 
-This project traces a running process, intercepts Linux system calls, and generates an **HTML report** describing file activity, process creation, memory operations, and network events.
+It traces Linux processes, monitors system calls, generates an HTML report, and detects suspicious behaviors through a rule-based detection engine. and save the logs in log.txt , and the high alerts in  alert.json .
 
-The project was built for educational purposes to better understand:
-
-- Linux internals
-- Process tracing
-- ptrace
-- System calls
-- Operating Systems
+the project is under development , he needs some features and getting clean .
 
 ---
 
-# Features
+## Features
 
-## Process Monitor
-
-Tracks process-related system calls.
-
-Supported:
-
-- `execve`
-- `fork`
-- `waitpid`
+- Process tracing with `ptrace`
+- File activity monitoring
+- Process monitoring (`fork`, `execve`, ...)
+- Memory monitoring (`mmap`, `mprotect`, ...)
+- Network monitoring (`connect`, `socket`, ...)
+- HTML report generation
+- Rule-based malware detection
+- Alert logging
+- Save high Alerts in json file 
+- Process blocking (`SIGKILL`) for critical events
 
 ---
 
-## File Monitor
+## Supported System Calls
 
 Tracks file activity.
 
@@ -110,6 +103,12 @@ After execution the monitor generates an HTML report containing:
 ```bash
 make
 ```
+| Category | Syscalls |
+|----------|----------|
+| File | `open`, `openat`, `read`, `write`, `close` |
+| Process | `fork`, `execve`, `waitpid` |
+| Memory | `mmap`, `mprotect`, `munmap` |
+| Network | `socket`, `bind`, `listen`, `accept`, `connect`, `send`, `recv` |
 
 ---
 
@@ -165,11 +164,20 @@ alert.txt     -> Security alerts generated during execution
 
 Open `report.html` in your browser to inspect the execution report.
 
+
+
+Generated files:
+
+```
+report.html
+log.txt
+alert.json
+```
+
 ---
 
-# Project Structure
+## Project Structure
 
-```text
 
 ```text
 .
@@ -204,8 +212,13 @@ Open `report.html` in your browser to inspect the execution report.
 ├── style.css
 ├── Makefile
 └── README.md
+=======
 ```
-
+include/
+src/
+Makefile
+README.md
+```
 
 
 ---
@@ -215,14 +228,37 @@ Open `report.html` in your browser to inspect the execution report.
 This project is intended **only for educational and research purposes**.
 
 It demonstrates Linux process tracing through the **ptrace** interface.
+---
 
-Use this software only on processes that you own or have permission to inspect.
+## Roadmap
 
-The author is **not responsible** for misuse, data loss, or legal consequences resulting from the use of this software.
+- [x] ptrace tracer
+- [x] File monitor
+- [x] Process monitor
+- [x] Memory monitor
+- [x] Network monitor
+- [x] HTML report
+- [x] Rule engine (in progress ....)
+- [x] Alert system
+- [x] JSON alert logging (in progress ....)
+- [ ] Configuration file for rules 
+- [ ] Interactive dashboard
 
 ---
 
-# License
+## Disclaimer
+
+This project is intended only for educational and research purposes.
+
+It demonstrates Linux process tracing through the ptrace interface.
+>>>>>>> c804dbc (add basic rule engine and save high alerts in json file .)
+
+Use this software only on processes that you own or have permission to inspect.
+
+The author is not responsible for misuse, data loss, or legal consequences resulting from the use of this software.
+---
+
+## License
 
 This project is released under the **MIT License**.
 
@@ -233,3 +269,4 @@ This project is released under the **MIT License**.
 Made with ❤️ in C on Linux.
 
 </p>
+MIT
