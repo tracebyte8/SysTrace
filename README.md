@@ -171,6 +171,9 @@ alert.json
 │   ├── alert.h
 │   ├── fd_tables.h
 │   ├── file_monitor.h
+│   ├── rules.h
+│   ├── alert.h
+│   ├── event.h
 │   ├── memory.h
 │   ├── memory_monitor.h
 │   ├── network_monitor.h
@@ -184,6 +187,7 @@ alert.json
 │   ├── tracer.c
 │   ├── syscall.c
 │   ├── memory.c
+│   ├── rule.c
 │   ├── fd_tables.c
 │   ├── file_monitor.c
 │   ├── process_monitor.c
@@ -193,7 +197,8 @@ alert.json
 │   ├── report.c
 │   └── test.c
 │
-├── report.html        
+├── report.html
+├── alert.json       
 ├── log.txt          
 ├── style.css
 ├── Makefile
