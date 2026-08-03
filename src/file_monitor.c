@@ -42,22 +42,12 @@ void handle_file_syscall(pid_t pid,
                        regs->rdx);
                 report_file_section_open(filename, regs->rdi, regs->rdx);
 
-                e.type =EVENT_FILE_OPEN;
-                strcpy(e.syscall, "open");
-                strncpy(e.path, filename, sizeof(e.path) - 1);
-                e.path[sizeof(e.path) - 1] = '\0';
-                e.pid=pid;
-                check_rules(&e);
+
+              check_danger(pid,EVENT_FILE_OPEN,"open",filename,0);
             }
             else
             {
-                                strcpy(e.syscall, "open");
-
-                 e.type =EVENT_FILE_OPEN;
-                strncpy(e.path, filename, sizeof(e.path) - 1);
-                e.path[sizeof(e.path) - 1] = '\0';
-                e.pid=pid;
-                check_rules(&e);
+               check_danger(pid,EVENT_FILE_OPEN,"open",filename,0);
                 get_fd_exit(regs);
             }
 
@@ -83,11 +73,8 @@ void handle_file_syscall(pid_t pid,
                 printf(" | bytes=%lld\n", regs->rdx);
                 strcpy(e.syscall,"read");
                 report_file_section_read(regs->rdi, path, regs->rdx);
-                 e.type =EVENT_FILE_READ;
-                strncpy(e.path, path, sizeof(e.path) - 1);
-                e.path[sizeof(e.path) - 1] = '\0';
-                e.pid=pid;
-                check_rules(&e);
+                check_danger(pid,EVENT_FILE_READ,"read",filename,0);
+
             }
 
             break;
