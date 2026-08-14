@@ -61,13 +61,13 @@ Supported:
 
 Current progress:
 
-- socket
-- bind
-- listen
-- accept
-- connect
-- send
-- recv
+- `socket`
+- `bind`
+- `listen`
+- `accept`
+- `connect`
+- `send`
+- `recv`
 
 
 ---
@@ -148,6 +148,7 @@ Generated files:
 report.html
 log.txt
 alert.json
+syscall_file.txt
 ```
 
 ---
@@ -188,7 +189,8 @@ alert.json
 │
 ├── report.html
 ├── alert.json       
-├── log.txt          
+├── log.txt     
+├── syscall_file.txt // the output is here     
 ├── style.css
 ├── Makefile
 └── README.md
@@ -211,7 +213,6 @@ alert.json
 - [x] Rule engine (in progress ....)
 - [x] Alert system
 - [x] JSON alert logging (in progress ....)
-- [ ] Configuration file for rules 
 - [ ] Interactive dashboard
 
 ---
