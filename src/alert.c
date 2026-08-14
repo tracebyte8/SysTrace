@@ -2,6 +2,7 @@
 #include "event.h"
 #include <time.h>
 
+ FILE *syscall_file= NULL;
 static FILE *log_file = NULL;
 static FILE *alerts_json = NULL;
 //
@@ -18,6 +19,12 @@ static FILE *alerts_json = NULL;
   
     if (!alerts_json){
         perror("error open alert ");
+       }
+
+   syscall_file=fopen("syscall.txt","a");
+  
+    if (!alerts_json){
+        perror("error open syscall ");
        }
  }
 
@@ -41,28 +48,17 @@ static FILE *alerts_json = NULL;
                     "%Y-%m-%dT%H:%M:%SZ",
                                       tm);
               
-    if (!alerts_json) {
+      if (!alerts_json) {
           printf("alerts_json is NULL!\n");
           return;
         }
    
         fprintf(alerts_json,
-"{"
-"\"time\":\"%s\","
-"\"severity\":\"HIGH\","
-"\"pid\":%d,"
-"\"syscall\":\"%s\","
-"\"path\":\"%s\","
-"\"action\":\"BLOCKED\","
-"\"details\":\"%s\""
-"}\n",
-timebuf,
-event->pid,
-event->syscall,
-event->path,
-details);
+            "{""\"time\":\"%s\",""\"severity\":\"%d\",""\"pid\":%d,""\"syscall\":\"%s\",""\"path\":\"%s\",""\"action\":\"BLOCKED\",""\"details\":\"%s\"""}\n",
+               timebuf,event->severity,event->pid,event->syscall,event->path,details);
 
-fflush(alerts_json);}
+        fflush(alerts_json);
+}
 
 
 //
@@ -70,4 +66,5 @@ fflush(alerts_json);}
 
     fclose(log_file);
     fclose(alerts_json);
+    fclose(syscall_file);
    }

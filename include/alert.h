@@ -2,6 +2,7 @@
 #define ALERT_H
 #include <stdio.h>
 #include "event.h"
+extern FILE *syscall_file;
 
 
 

@@ -31,13 +31,13 @@ void handle_file_syscall(pid_t pid,
                 read_string(pid, regs->rsi, filename, sizeof(filename));
                 get_file_entry(pid, regs, filename);
            
-                printf("OPEN : %s\n", filename);
+                fprintf(syscall_file,"OPEN : %s\n", filename);
 
                 if  (strcmp("/etc/passwd",filename)==0){
                     write_alert("[ALERT] the process try to open /etc/passwd");
                 }
                 
-                printf("dirfd = %lld | flags = %lld\n",
+                fprintf(syscall_file,"dirfd = %lld | flags = %lld\n",
                        regs->rdi,
                        regs->rdx);
                 report_file_section_open(filename, regs->rdi, regs->rdx);
@@ -60,17 +60,17 @@ void handle_file_syscall(pid_t pid,
 
                 char *path = search_fd(regs->rdi);
 
-                printf("READ fd=%lld", regs->rdi);
+                fprintf(syscall_file,"READ fd=%lld", regs->rdi);
 
                 if (path){
-                    printf(" (%s)", path);
+                    fprintf(syscall_file," (%s)", path);
                   if  (strcmp("/etc/passwd",path)==0){
                     write_alert("[ALERT] the process try to read from /etc/passwd");
                 }
                 }
                     
 
-                printf(" | bytes=%lld\n", regs->rdx);
+                fprintf(syscall_file," | bytes=%lld\n", regs->rdx);
                 strcpy(e.syscall,"read");
                 report_file_section_read(regs->rdi, path, regs->rdx);
                 check_danger(pid,EVENT_FILE_READ,"read",filename,0);
@@ -85,18 +85,18 @@ void handle_file_syscall(pid_t pid,
             {
                 char *path = search_fd(regs->rdi);
 
-                printf("CLOSE fd=%lld", regs->rdi);
+                fprintf(syscall_file,"CLOSE fd=%lld", regs->rdi);
 
 
                 if (path){
-                    printf(" (%s)", path);
+                    fprintf(syscall_file," (%s)", path);
                   if  (strcmp("/etc/passwd",path)==0){
                     write_alert("[ALERT] the process try to close /etc/passwd");
                 }
                 }
                     
 
-                printf("\n");
+                fprintf(syscall_file,"\n");
                 report_file_section_close(regs->rdi, path);
             }
             else

@@ -122,7 +122,7 @@ void trace(char *program)
              }
       }
 
-        printf("PID=%d PPID=%d STATUS=0x%x EVENT=%u SIG=%d\n",
+        fprintf(syscall_file,"PID=%d PPID=%d STATUS=0x%x EVENT=%u SIG=%d\n",
               current_pid,
               traced[current].parent,
                status,
@@ -168,7 +168,7 @@ void trace(char *program)
                0,
               &new_pid);
 
-        printf("Parent %d -> Child %lu\n",
+        fprintf(syscall_file,"Parent %d -> Child %lu\n",
               current_pid,
                new_pid);
     
@@ -197,7 +197,7 @@ void trace(char *program)
 
         if (traced[current].entering) {
             
-            printf("ENTER %s (%lld)\n", syscall_name(regs.orig_rax), (long long)regs.orig_rax);
+            fprintf(syscall_file,"ENTER %s (%lld)\n", syscall_name(regs.orig_rax), (long long)regs.orig_rax);
 
             handle_file_syscall(current_pid, &regs, 1);
             handle_process_syscall(current_pid, &regs, 1);
@@ -215,24 +215,24 @@ void trace(char *program)
 
                 char *name = search_fd((int)regs.rax);
 
-                printf("EXIT  %s return=%lld",
+                fprintf(syscall_file,"EXIT  %s return=%lld",
                        syscall_name(regs.orig_rax),
                        (long long)regs.rax);
 
                 if (name != NULL)
-                    printf(" (%s)", name);
+                    fprintf(syscall_file," (%s)", name);
 
-                printf("\n");
+                fprintf(syscall_file,"\n");
 
             } else {
 
-                printf("EXIT  %s return=%lld\n",
+                fprintf(syscall_file,"EXIT  %s return=%lld\n",
                        syscall_name(regs.orig_rax),
                        (long long)regs.rax);
             }
         }
 
-        printf("----------------------------------\n");
+        fprintf(syscall_file,"----------------------------------\n");
 
         traced[current].entering = !traced[current].entering;
     }

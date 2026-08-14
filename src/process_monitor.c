@@ -20,9 +20,9 @@ char filename[256] = {0};
     if (entering) {
         read_string(pid, regs->rdi, filename, sizeof(filename));
         write_alert("the process change his prog !");
-        printf("========== EXECVE ==========\n");
-        printf("Program : %s\n", filename);
-        printf("============================\n");
+        fprintf(syscall_file,"========== EXECVE ==========\n");
+        fprintf(syscall_file,"Program : %s\n", filename);
+        fprintf(syscall_file,"============================\n");
         report_process_section_exec(filename);
     }
 
@@ -30,7 +30,7 @@ char filename[256] = {0};
      
      case SYS_fork:
       
-        printf("[%d] FORK REQUESTED ====/n",pid);
+        fprintf(syscall_file,"[%d] FORK REQUESTED ====/n",pid);
         write_alert("the father create another process !");
         report_process_section_fork(pid);
 
@@ -38,7 +38,7 @@ char filename[256] = {0};
 
      case SYS_wait4:
 
-       printf("WAIT4 pid=%lld\n",regs->rdi);
+       fprintf(syscall_file,"WAIT4 pid=%lld\n",regs->rdi);
        if (regs->rdi > 0)
     report_process_section_wait(regs->rdi);
 

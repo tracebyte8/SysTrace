@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include "report.h"
+#include "rules.h"
+#include "alert.h"
 
 
 void handle_memory_syscall(pid_t pid, struct user_regs_struct *regs, int entering){
@@ -12,16 +14,16 @@ switch(regs->orig_rax)
     case SYS_mmap:
     // Creates a new memory region.
         if (entering) {
-            printf("==MMAP ENTER==\n");
-            printf("Length : 0x%llx\n", (unsigned long long)regs->rsi);
-            printf("Prot   : %lld\n", (long long)regs->rdx);
-            printf("Flags  : %lld\n", (long long)regs->r10);
-            printf("FD      : %lld\n", (long long)regs->r8);
+            fprintf(syscall_file,"==MMAP ENTER==\n");
+            fprintf(syscall_file,"Length : 0x%llx\n", (unsigned long long)regs->rsi);
+            fprintf(syscall_file,"Prot   : %lld\n", (long long)regs->rdx);
+            fprintf(syscall_file,"Flags  : %lld\n", (long long)regs->r10);
+            fprintf(syscall_file,"FD      : %lld\n", (long long)regs->r8);
 
         }else {
 
-            printf("== MMAP EXIT ==\n");
-            printf("Return : %lld\n", (long long)regs->rax);
+            fprintf(syscall_file,"== MMAP EXIT ==\n");
+            fprintf(syscall_file,"Return : %lld\n", (long long)regs->rax);
             
         }
         break;
@@ -29,19 +31,19 @@ switch(regs->orig_rax)
     case SYS_mprotect:
     // Changes permissions.
         if (entering) {
-            printf("==MPROTECT ENTER==\n");
-            printf("Addr : 0x%llx\n",(unsigned long long) regs->rdi);
-            printf("Lenght : %lld\n",(long long)regs->rsi);
-            printf("Protection : %lld\n",(long long)regs->rdx);
+            fprintf(syscall_file,"==MPROTECT ENTER==\n");
+            fprintf(syscall_file,"Addr : 0x%llx\n",(unsigned long long) regs->rdi);
+            fprintf(syscall_file,"Lenght : %lld\n",(long long)regs->rsi);
+            fprintf(syscall_file,"Protection : %lld\n",(long long)regs->rdx);
 
         }else{
 
             if ((long long)regs->rax==0){
-            printf("== MPROTECT EXIT ==\n");
-            printf("result : SUCCESS");
+            fprintf(syscall_file,"== MPROTECT EXIT ==\n");
+            fprintf(syscall_file,"result : SUCCESS");
             }else{
-            printf("== MPROTECT EXIT ==\n");
-            printf("result : FAILED");
+            fprintf(syscall_file,"== MPROTECT EXIT ==\n");
+            fprintf(syscall_file,"result : FAILED");
             }  
 report_memory_section_mprotect(
     pid,
@@ -55,9 +57,9 @@ report_memory_section_mprotect(
     case SYS_munmap:
     // Removes a memory region.
         if (entering) {
-            printf("========== MUNMAP ENTER==========\n");
-            printf("Addr : 0x%llx\n",(unsigned long long) regs->rdi);
-            printf("Lenght : %lld\n",(long long)regs->rsi);
+            fprintf(syscall_file,"========== MUNMAP ENTER==========\n");
+            fprintf(syscall_file,"Addr : 0x%llx\n",(unsigned long long) regs->rdi);
+            fprintf(syscall_file,"Lenght : %lld\n",(long long)regs->rsi);
 report_memory_section_munmap(
     pid,
     regs->rdi,
@@ -67,12 +69,12 @@ report_memory_section_munmap(
         }else{
 
             if ((long long)regs->rax==0){
-            printf("========== MUNMAP EXIT===\n");
-            printf("result : SUCCESS");
+            fprintf(syscall_file,"========== MUNMAP EXIT===\n");
+            fprintf(syscall_file,"result : SUCCESS");
             
             }else{
-            printf("== MUNMAP EXIT ==\n");
-            printf("result : FAILED");
+            fprintf(syscall_file,"== MUNMAP EXIT ==\n");
+            fprintf(syscall_file,"result : FAILED");
 report_memory_section_munmap( pid,regs->rdi,regs->rsi,regs->rax);        
     }
         }
@@ -81,17 +83,17 @@ report_memory_section_munmap( pid,regs->rdi,regs->rsi,regs->rax);
     case SYS_brk:
     // Changes the end of the data segment.
         if (entering) {
-            printf("=== BRK ENTER==\n");
-            printf("Addr : 0x%llx\n",(unsigned long long) regs->rdi);
+            fprintf(syscall_file,"=== BRK ENTER==\n");
+            fprintf(syscall_file,"Addr : 0x%llx\n",(unsigned long long) regs->rdi);
             
         }else{
 
             if ((long long)regs->rax==0){
-            printf("== BRK EXIT ==\n");
-            printf("New program break : 0x%llx\n",(unsigned long long)regs->rax);
+            fprintf(syscall_file,"== BRK EXIT ==\n");
+            fprintf(syscall_file,"New program break : 0x%llx\n",(unsigned long long)regs->rax);
             }else{
-            printf("== BRK EXIT ==\n");
-            printf("result : FAILED\n");
+            fprintf(syscall_file,"== BRK EXIT ==\n");
+            fprintf(syscall_file,"result : FAILED\n");
             }
         }
         break;

@@ -14,13 +14,13 @@ void check_danger(pid_t pid,EventType type,char syscall[32],char path[256],int p
  
         event e;
         e.type=type;
-        
         strncpy(e.path, path, sizeof(e.path) - 1);
         e.path[sizeof(e.path) - 1] = '\0';
         e.pid=pid;
- strncpy(e.syscall, syscall, sizeof(e.syscall) - 1);
-e.syscall[sizeof(e.syscall) - 1] = '\0';       
-        check_rules(&e,0);
+        strncpy(e.syscall, syscall, sizeof(e.syscall) - 1);
+        e.syscall[sizeof(e.syscall) - 1] = '\0';       
+        e.severity=CRITICAL;
+        check_rules(&e);
     }
 
 
@@ -28,11 +28,10 @@ e.syscall[sizeof(e.syscall) - 1] = '\0';
 
 
 
-void check_rules(event *event,int danger){
+void check_rules(event *event){
 
 
 
-if (danger==0){
 
     switch (event->type){
  
@@ -125,4 +124,3 @@ if (danger==0){
           }
 
     }
-}

@@ -7,11 +7,17 @@
 
 #include "fd_tables.h"
 #include "report.h"
+#include "rules.h"
+#include "event.h"
+#include "alert.h"
 
 void handle_network_syscall(pid_t pid,
                             struct user_regs_struct *regs,
                             int entering)
 {
+        char filename[256];
+        event e;
+
 char *name = NULL;   // initialize it
     if (entering) {
 
@@ -19,138 +25,140 @@ char *name = NULL;   // initialize it
 
         case SYS_socket:
 
-            printf("========== SOCKET ==========\n");
-            printf("Domain   : %lld\n", (long long)regs->rdi);
-            printf("Type     : %lld\n", (long long)regs->rsi);
-            printf("Protocol : %lld\n", (long long)regs->rdx);
+            fprintf(syscall_file,"========== SOCKET ==========\n");
+            fprintf(syscall_file,"Domain   : %lld\n", (long long)regs->rdi);
+            fprintf(syscall_file,"Type     : %lld\n", (long long)regs->rsi);
+            fprintf(syscall_file,"Protocol : %lld\n", (long long)regs->rdx);
 
             get_socket_entry();
 
-            printf("============================\n");
+            fprintf(syscall_file,"============================\n");
             report_network_section_socket((long long )regs->rdi,(long long )regs->rsi,(long long) regs->rdx);
+
             break;
 
         case SYS_connect:
 
-            printf("========== CONNECT ==========\n");
+            fprintf(syscall_file,"========== CONNECT ==========\n");
 
-            printf("Socket   : %lld", (long long)regs->rdi);
+            fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
 
             name = search_fd(regs->rdi);
             if (name)
-                printf(" (%s)", name);
+                fprintf(syscall_file," (%s)", name);
 
-            printf("\n");
-            printf("Address  : 0x%llx\n",
+            fprintf(syscall_file,"\n");
+            fprintf(syscall_file,"Address  : 0x%llx\n",
                    (unsigned long long)regs->rsi);
-            printf("Addr Len : %lld\n",
+            fprintf(syscall_file,"Addr Len : %lld\n",
                    (long long)regs->rdx);
 
-            printf("=============================\n");
+            fprintf(syscall_file,"=============================\n");
             report_network_section_connect((long long )regs->rdi,name, (long long)regs->rax);
+            check_danger(pid,EVENT_NETWORK_CONNECT,"connect",name,0);
             break;
 
         case SYS_sendto:
 
-            printf("========== SENDTO ==========\n");
+            fprintf(syscall_file,"========== SENDTO ==========\n");
 
-            printf("Socket   : %lld", (long long)regs->rdi);
+            fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
 
             name = search_fd(regs->rdi);
             if (name)
-                printf(" (%s)", name);
+                fprintf(syscall_file," (%s)", name);
 
-            printf("\n");
-            printf("Buffer   : 0x%llx\n",
+            fprintf(syscall_file,"\n");
+            fprintf(syscall_file,"Buffer   : 0x%llx\n",
                    (unsigned long long)regs->rsi);
-            printf("Length   : %lld\n",
+            fprintf(syscall_file,"Length   : %lld\n",
                    (long long)regs->rdx);
-            printf("Flags    : %lld\n",
+            fprintf(syscall_file,"Flags    : %lld\n",
                    (long long)regs->r10);
-            printf("Dest Addr: 0x%llx\n",
+            fprintf(syscall_file,"Dest Addr: 0x%llx\n",
                    (unsigned long long)regs->r8);
 
-            printf("============================\n");
+            fprintf(syscall_file,"============================\n");
             report_network_section_send(regs->rdi, name, regs->rdx);
             break;
 
         case SYS_recvfrom:
 
-            printf("========== RECVFROM ==========\n");
+            fprintf(syscall_file,"========== RECVFROM ==========\n");
 
-            printf("Socket   : %lld", (long long)regs->rdi);
+            fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
 
             name = search_fd(regs->rdi);
             if (name)
-                printf(" (%s)", name);
+                fprintf(syscall_file," (%s)", name);
 
-            printf("\n");
-            printf("Buffer   : 0x%llx\n",
+            fprintf(syscall_file,"\n");
+            fprintf(syscall_file,"Buffer   : 0x%llx\n",
                    (unsigned long long)regs->rsi);
-            printf("Length   : %lld\n",
+            fprintf(syscall_file,"Length   : %lld\n",
                    (long long)regs->rdx);
-            printf("Flags    : %lld\n",
+            fprintf(syscall_file,"Flags    : %lld\n",
                    (long long)regs->r10);
 
-            printf("==============================\n");
+            fprintf(syscall_file,"==============================\n");
             report_network_section_recv(regs->rdi, name, regs->rdx);
             break;
 
         case SYS_bind:
 
-            printf("========== BIND ==========\n");
+            fprintf(syscall_file,"========== BIND ==========\n");
 
-            printf("Socket   : %lld", (long long)regs->rdi);
+            fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
 
             name = search_fd(regs->rdi);
             if (name)
-                printf(" (%s)", name);
+                fprintf(syscall_file," (%s)", name);
 
-            printf("\n");
-            printf("Address  : 0x%llx\n",
+            fprintf(syscall_file,"\n");
+            fprintf(syscall_file,"Address  : 0x%llx\n",
                    (unsigned long long)regs->rsi);
-            printf("Addr Len : %lld\n",
+            fprintf(syscall_file,"Addr Len : %lld\n",
                    (long long)regs->rdx);
 
-            printf("==========================\n");
+            fprintf(syscall_file,"==========================\n");
             report_network_section_bind(regs->rdi, name, regs->rax);
             break;
 
         case SYS_listen:
 
-            printf("========== LISTEN ==========\n");
+            fprintf(syscall_file,"========== LISTEN ==========\n");
 
-            printf("Socket   : %lld", (long long)regs->rdi);
+            fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
 
             name = search_fd(regs->rdi);
             if (name)
-                printf(" (%s)", name);
+                fprintf(syscall_file," (%s)", name);
 
-            printf("\n");
-            printf("Backlog  : %lld\n",
+            fprintf(syscall_file,"\n");
+            fprintf(syscall_file,"Backlog  : %lld\n",
                    (long long)regs->rsi);
 
-            printf("============================\n");
+            fprintf(syscall_file,"============================\n");
             report_network_section_listen(regs->rdi, name, regs->rax);
             break;
 
         case SYS_accept:
 
-            printf("========== ACCEPT ==========\n");
+            fprintf(syscall_file,"========== ACCEPT ==========\n");
 
-            printf("Socket   : %lld", (long long)regs->rdi);
+            fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
 
             name = search_fd(regs->rdi);
             if (name)
-                printf(" (%s)", name);
+                fprintf(syscall_file," (%s)", name);
 
-            printf("\n");
-            printf("Address  : 0x%llx\n",
+            fprintf(syscall_file,"\n");
+            fprintf(syscall_file,"Address  : 0x%llx\n",
                    (unsigned long long)regs->rsi);
-            printf("Addr Len : %lld\n",
+            fprintf(syscall_file,"Addr Len : %lld\n",
                    (long long)regs->rdx);
 
-            printf("============================\n");
+            fprintf(syscall_file,"============================\n");
             report_network_section_accept(regs->rdi, name, regs->rax);
             break;
 
@@ -164,67 +172,73 @@ char *name = NULL;   // initialize it
 
         case SYS_socket:
 
-            printf("========== SOCKET EXIT ==========\n");
-            printf("Return FD : %lld\n",
+            fprintf(syscall_file,"========== SOCKET EXIT ==========\n");
+            fprintf(syscall_file,"Return FD : %lld\n",
                    (long long)regs->rax);
 
             get_fd_exit(regs);
 
-            printf("=================================\n");
+            fprintf(syscall_file,"=================================\n");
             report_network_section_socket(regs->rdi, regs->rsi, regs->rax);
+                        report_network_section_socket((long long )regs->rdi,(long long )regs->rsi,(long long) regs->rdx);
+    
+
+            check_danger(pid,EVENT_NETWORK_SOCKET,"socket",filename,0);
+            
             break;
 
         case SYS_connect:
 
-            printf("========== CONNECT EXIT ==========\n");
-            printf("Return : %lld\n",
+            fprintf(syscall_file,"========== CONNECT EXIT ==========\n");
+            fprintf(syscall_file,"Return : %lld\n",
                    (long long)regs->rax);
-            printf("==================================\n");
+            fprintf(syscall_file,"==================================\n");
             report_network_section_connect(regs->rdi, name, regs->rax);
+            check_danger(pid,EVENT_NETWORK_CONNECT,"connect",name,0);
             break;
 
         case SYS_sendto:
 
-            printf("========== SENDTO EXIT ==========\n");
-            printf("Bytes Sent : %lld\n",
+            fprintf(syscall_file,"========== SENDTO EXIT ==========\n");
+            fprintf(syscall_file,"Bytes Sent : %lld\n",
                    (long long)regs->rax);
-            printf("=================================\n");
+            fprintf(syscall_file,"=================================\n");
             report_network_section_send(regs->rdi, name, regs->rax);
             break;
 
         case SYS_recvfrom:
 
-            printf("========== RECVFROM EXIT ==========\n");
-            printf("Bytes Received : %lld\n",
+            fprintf(syscall_file,"========== RECVFROM EXIT ==========\n");
+            fprintf(syscall_file,"Bytes Received : %lld\n",
                    (long long)regs->rax);
-            printf("===================================\n");
+            fprintf(syscall_file,"===================================\n");
             report_network_section_recv(regs->rdi, name, regs->rax);
             break;
 
         case SYS_bind:
 
-            printf("========== BIND EXIT ==========\n");
-            printf("Return : %lld\n",
+            fprintf(syscall_file,"========== BIND EXIT ==========\n");
+            fprintf(syscall_file,"Return : %lld\n",
                    (long long)regs->rax);
-            printf("===============================\n");
+            fprintf(syscall_file,"===============================\n");
             report_network_section_bind(regs->rdi, name, regs->rax);
             break;
 
         case SYS_listen:
 
-            printf("========== LISTEN EXIT ==========\n");
-            printf("Return : %lld\n",
+            fprintf(syscall_file,"========== LISTEN EXIT ==========\n");
+            fprintf(syscall_file,"Return : %lld\n",
                    (long long)regs->rax);
-            printf("=================================\n");
+            fprintf(syscall_file,"=================================\n");
             report_network_section_listen(regs->rdi, name, regs->rax);
             break;
 
         case SYS_accept:
 
-            printf("========== ACCEPT EXIT ==========\n");
-            printf("New Socket : %lld\n",
+            fprintf(syscall_file,"========== ACCEPT EXIT ==========\n");
+            fprintf(syscall_file,"New Socket : %lld\n",
                    (long long)regs->rax);
-            printf("=================================\n");
+            fprintf(syscall_file,"=================================\n");
             report_network_section_accept(regs->rdi, name, regs->rax);
             break;
 
