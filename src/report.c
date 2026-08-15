@@ -6,6 +6,9 @@
 #include <sys/types.h>
 #include <errno.h>
 
+
+// report.c manage the html css dashboard .
+
 /* ===================== INTERNAL STATE ===================== */
 
 typedef enum {

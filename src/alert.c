@@ -2,7 +2,9 @@
 #include "event.h"
 #include <time.h>
 
- FILE *syscall_file= NULL;
+// alert.c is for manage files (alert.json,log.txt,syscall.txt)
+
+FILE *syscall_file= NULL;
 static FILE *log_file = NULL;
 static FILE *alerts_json = NULL;
 //
@@ -53,9 +55,22 @@ static FILE *alerts_json = NULL;
           return;
         }
    
-        fprintf(alerts_json,
-            "{""\"time\":\"%s\",""\"severity\":\"%d\",""\"pid\":%d,""\"syscall\":\"%s\",""\"path\":\"%s\",""\"action\":\"BLOCKED\",""\"details\":\"%s\"""}\n",
-               timebuf,event->severity,event->pid,event->syscall,event->path,details);
+fprintf(alerts_json,
+         
+        "{\n"
+        "\"time\":\"%s\",\n"
+        "\"severity\":%d,\n"
+        "\"pid\":%d,\n"
+        "\"syscall\":\"%s\",\n"
+        "\"path\":\"%s\",\n"
+        "\"action\":\"BLOCKED\",\n"
+        "\"details\":\"%s\"}\n",
+        timebuf,
+        event->severity,
+        event->pid,
+        event->syscall,
+        event->path,
+        details);
 
         fflush(alerts_json);
 }

@@ -1,12 +1,15 @@
 #include "process_monitor.h"
+
 #include "memory.h"
 #include <sys/syscall.h>
 #include "report.h"
 #include "alert.h"
-
 #include <stdio.h>
 #include <sys/syscall.h>
 
+
+// process_monitor.c trace process system calls (fork,execve...) for enrty and exit 
+// and save the information in syscall.txt .
 void handle_process_syscall(pid_t pid,
                             struct user_regs_struct *regs,
                            int entering)

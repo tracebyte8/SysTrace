@@ -3,7 +3,8 @@
 #include <string.h>
 #include <signal.h>
 
-
+// rules.c is mini rule engine that filter simple danger syscall .
+// block process and save it in alert.json and kill the process ! .
 
 void check_danger(pid_t pid,EventType type,char syscall[32],char path[256],int porter){
 

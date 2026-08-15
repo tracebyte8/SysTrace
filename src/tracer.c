@@ -18,6 +18,8 @@
 #include "event.h"
 #include "rules.h"
 
+
+// trace.c is the core of this project , save process in array , trace process using prtrace . 
 struct traced_process {
 
     pid_t pid;

@@ -4,13 +4,14 @@
 #include <sys/syscall.h>
 #include <sys/socket.h>
 #include <sys/user.h>
-
 #include "fd_tables.h"
 #include "report.h"
 #include "rules.h"
 #include "event.h"
 #include "alert.h"
 
+// network_monitor.c trace network system calls (socket,connect,sendto...) for enrty and exit 
+// and save the information in syscall.txt .
 void handle_network_syscall(pid_t pid,
                             struct user_regs_struct *regs,
                             int entering)
