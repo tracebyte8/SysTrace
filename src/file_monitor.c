@@ -2,7 +2,7 @@
 
 #include "memory.h"
 #include <sys/syscall.h>
-#include "report.h"
+#include "tracer.h"
 #include "alert.h"
 #include "event.h"
 #include <stdio.h>
@@ -28,9 +28,10 @@ void handle_file_syscall(pid_t pid,
     switch (regs->orig_rax)
     {
         case SYS_openat:
-
+            
             if (entering)
             {
+                openit++;
                 // read  regs->rsi and save it in file name
                 read_string(pid, regs->rsi, filename, sizeof(filename));
                 get_file_entry(pid, regs, filename);
@@ -44,11 +45,11 @@ void handle_file_syscall(pid_t pid,
                 fprintf(syscall_file,"dirfd = %lld | flags = %lld\n",
                                      regs->rdi,
                                      regs->rdx);
-                report_file_section_open(filename, regs->rdi, regs->rdx);
                 check_danger(pid,EVENT_FILE_OPEN,"open",filename,0);
             }
             else
              {
+                openit++;
                check_danger(pid,EVENT_FILE_OPEN,"open",filename,0);
                get_fd_exit(regs);
              }
@@ -59,7 +60,7 @@ void handle_file_syscall(pid_t pid,
 
             if (entering)
             {
-
+                readit++;
                 char *path = search_fd(regs->rdi);
 
                 fprintf(syscall_file,"READ fd=%lld", regs->rdi);
@@ -73,7 +74,6 @@ void handle_file_syscall(pid_t pid,
                     
                 fprintf(syscall_file," | bytes=%lld\n", regs->rdx);
                 strcpy(e.syscall,"read");
-                report_file_section_read(regs->rdi, path, regs->rdx);
                 check_danger(pid,EVENT_FILE_READ,"read",filename,0);
 
             }
@@ -84,6 +84,7 @@ void handle_file_syscall(pid_t pid,
 
             if (entering)
             {
+                file++;
                 char *path = search_fd(regs->rdi);
 
                 fprintf(syscall_file,"CLOSE fd=%lld", regs->rdi);
@@ -97,10 +98,10 @@ void handle_file_syscall(pid_t pid,
                 } 
 
                 fprintf(syscall_file,"\n");
-                report_file_section_close(regs->rdi, path);
             }
             else
             {
+                file++;
                 remove_fd(regs->rdi);
             }
 

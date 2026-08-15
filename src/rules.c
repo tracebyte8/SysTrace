@@ -2,6 +2,7 @@
 #include "alert.h"
 #include <string.h>
 #include <signal.h>
+#include "tracer.h"
 
 // rules.c is mini rule engine that filter simple danger syscall .
 // block process and save it in alert.json and kill the process ! .
@@ -45,6 +46,8 @@ void check_rules(event *event){
                 {
                   perror("kill");
                 } 
+                killit++;
+                
               
            
 
@@ -62,6 +65,7 @@ void check_rules(event *event){
                  {
                   perror("kill"); 
                   }
+                  killit++;
             
          break;
 
@@ -76,6 +80,7 @@ void check_rules(event *event){
                     perror("kill"); 
 
                    }
+                   killit++;
             
          break ;
 
@@ -89,6 +94,7 @@ void check_rules(event *event){
                    {
                     perror("kill"); 
                    }
+                   killit++;
            
          break;
 
@@ -114,6 +120,7 @@ void check_rules(event *event){
                    {
                     perror("kill"); 
                    }
+                   killit++;
            
          break;
 

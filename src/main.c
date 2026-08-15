@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "report.h"
+#include "index.h"
 #include "tracer.h"
 
 int main(int argc, char *argv[])
@@ -10,11 +10,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    report_start(argv[1]);
 
     trace(argv[1]);
+    html(argv[1]);
 
-    report_finish();
 
     printf("Report generated: report.html\n");
 

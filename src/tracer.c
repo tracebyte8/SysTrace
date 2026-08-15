@@ -18,6 +18,17 @@
 #include "event.h"
 #include "rules.h"
 
+ int file=0;
+ int process=0;
+ int network=0;
+ int forkit=0;
+ int connectit=0;
+ int excve=0;
+ int readit=0;
+ int openit=0;
+ int memory=0;
+ int chmod=0;
+ int killit=0;
 
 // trace.c is the core of this project , save process in array , trace process using prtrace . 
 struct traced_process {
