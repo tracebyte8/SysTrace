@@ -32,43 +32,12 @@ the project is under development , he needs some features and getting clean .
 
 ---
 
-## Supported System Calls
-
-Tracks file activity.
-
-Supported:
-
-- `open`
-- `openat`
-- `read`
-- `close`
-
----
-
-## Memory Monitor
-
-Tracks memory management.
-
-Supported:
-
-- `mmap`
-- `mprotect`
-- `munmap`
-
----
-
-## Network Monitor
-
-Current progress:
-
-- `socket`
-- `bind`
-- `listen`
-- `accept`
-- `connect`
-- `send`
-- `recv`
-
+| Category | Syscalls |
+|----------|----------|
+| File | `open`, `openat`, `read`, `write`, `close` |
+| Process | `fork`, `execve`, `waitpid` |
+| Memory | `mmap`, `mprotect`, `munmap` |
+| Network | `socket`, `bind`, `listen`, `accept`, `connect`, `send`, `recv` |
 
 ---
 
@@ -81,6 +50,7 @@ After execution the monitor generates an HTML report containing:
 - Memory operations
 - Network operations
 - Summary statistics
+- 3 files .
 
 ---
 
@@ -89,12 +59,6 @@ After execution the monitor generates an HTML report containing:
 ```bash
 make
 ```
-| Category | Syscalls |
-|----------|----------|
-| File | `open`, `openat`, `read`, `write`, `close` |
-| Process | `fork`, `execve`, `waitpid` |
-| Memory | `mmap`, `mprotect`, `munmap` |
-| Network | `socket`, `bind`, `listen`, `accept`, `connect`, `send`, `recv` |
 
 ---
 
@@ -158,6 +122,10 @@ syscall_file.txt
 
 ```text
 .
+├── dashboard
+│   ├── index.c
+│   └── style.css
+|
 ├── include/
 │   ├── alert.h
 │   ├── fd_tables.h
@@ -168,7 +136,6 @@ syscall_file.txt
 │   ├── memory_monitor.h
 │   ├── network_monitor.h
 │   ├── process_monitor.h
-│   ├── report.h
 │   ├── syscall.h
 │   └── tracer.h
 │
@@ -184,14 +151,12 @@ syscall_file.txt
 │   ├── memory_monitor.c
 │   ├── network_monitor.c
 │   ├── alert.c
-│   ├── report.c
 │   └── test.c
 │
 ├── report.html
 ├── alert.json       
 ├── log.txt     
 ├── syscall_file.txt // the output is here     
-├── style.css
 ├── Makefile
 └── README.md
 =======
@@ -210,10 +175,10 @@ syscall_file.txt
 - [x] Memory monitor
 - [x] Network monitor
 - [x] HTML report
-- [x] Rule engine (in progress ....)
-- [x] Alert system
-- [x] JSON alert logging (in progress ....)
-- [ ] Interactive dashboard
+- [x] Rule engine 
+- [x] Alert system ( in progress.. )
+- [x] JSON alert logging 
+- [x] Interactive dashboard
 
 ---
 

@@ -69,7 +69,7 @@ if (danger > 100 || killit !=0 )
         "        <div class=\"danger-info\">\n"
         "            <h2>Danger Level</h2>\n"
         "            <p>%d dangerous event(s) detected.</p>\n"
-        "            <p> 100% indicates that a dangerous event was detected and the monitored process was blocked. Additional suspicious syscalls may have been not detected before the process was terminated. </p>\n"
+        "            <p> 100%% indicates that a dangerous event was detected and the monitored process was blocked. Additional suspicious syscalls may have been not detected before the process was terminated. </p>\n"
         "        </div>\n"
         "    </section>\n"
 
