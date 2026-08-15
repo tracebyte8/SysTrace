@@ -43,14 +43,7 @@ the project is under development , he needs some features and getting clean .
 
 ## HTML Report
 
-After execution the monitor generates an HTML report containing:
-
-- Process activity
-- File operations
-- Memory operations
-- Network operations
-- Summary statistics
-- 3 files .
+![dashboardexmpl](image/dashboardexmpl.png)
 
 ---
 
