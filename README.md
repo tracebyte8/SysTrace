@@ -137,7 +137,7 @@ syscall_file.txt
 │   ├── tracer.c
 │   ├── syscall.c
 │   ├── memory.c
-│   ├── rule.c
+│   ├── rules.c
 │   ├── fd_tables.c
 │   ├── file_monitor.c
 │   ├── process_monitor.c
