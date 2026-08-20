@@ -1,9 +1,16 @@
 #include <stdio.h>
 #include "tracer.h"
+#include "stat.h"
+#include <string.h>
 
 void html(char *program)
 {
+    char buffer[18];
     FILE *fp = fopen("report.html", "w");
+    FILE *fpr =fopen("prediction.txt","r");
+        if (fgets(buffer, sizeof(buffer), fpr) != NULL) {
+        printf("Line read: %s", buffer);
+    }
 
     if (!fp)
     {
@@ -11,19 +18,18 @@ void html(char *program)
         return;
     }
  
- process = process + forkit + excve;
-file = openit + readit;
-network = connectit;
-int total = process + file + network;
+ 
+int total = stats.file + stats.network + stats.process;
 
 int danger = 0;
 
 if (total > 0)
-    danger = ((double)killit * 100) / (double)total;
+    danger = ((double)stats.killit * 100) / (double)total;
 
-if (danger > 100 || killit !=0 )
-    danger = 100;
-    printf("DEBUG: killit=%d total=%d\n", killit, total);
+
+    if(strcmp(buffer,"MALICIOUS")==0){
+    danger = 100;}
+   
 
     fprintf(fp,
         "<!DOCTYPE html>\n"
@@ -79,15 +85,15 @@ if (danger > 100 || killit !=0 )
         "</html>\n",
 
         program,
-        forkit,
-        openit,
-        readit,
-        connectit,
-        memory + chmod,
-        killit,
+        stats.fork,
+        stats.open,
+        stats.read,
+        stats.connect,
+        stats.memory + stats.chmod,
+        stats.killit,
         danger,
         danger,
-        killit
+        stats.killit
     );
 
     fclose(fp);

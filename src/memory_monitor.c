@@ -5,15 +5,16 @@
 #include "rules.h"
 #include "alert.h"
 #include "tracer.h"
+#include "stat.h"
 
 void handle_memory_syscall(pid_t pid, struct user_regs_struct *regs, int entering){
 
-switch(regs->orig_rax)
-{
+ switch(regs->orig_rax)
+  {
     case SYS_mmap:
     // Creates a new memory region.
         if (entering) {
-            memory++;
+            stats.memory++;
             fprintf(syscall_file,"==MMAP ENTER==\n");
             fprintf(syscall_file,"Length : 0x%llx\n", (unsigned long long)regs->rsi);
             fprintf(syscall_file,"Prot   : %lld\n", (long long)regs->rdx);
@@ -22,7 +23,7 @@ switch(regs->orig_rax)
 
         }else {
  
-            memory++;
+            stats.memory++;
             fprintf(syscall_file,"== MMAP EXIT ==\n");
             fprintf(syscall_file,"Return : %lld\n", (long long)regs->rax);
             
@@ -32,22 +33,26 @@ switch(regs->orig_rax)
     case SYS_mprotect:
     // Changes permissions.
         if (entering) {
-            chmod++;
+            stats.chmod++;
             fprintf(syscall_file,"==MPROTECT ENTER==\n");
             fprintf(syscall_file,"Addr : 0x%llx\n",(unsigned long long) regs->rdi);
             fprintf(syscall_file,"Lenght : %lld\n",(long long)regs->rsi);
             fprintf(syscall_file,"Protection : %lld\n",(long long)regs->rdx);
 
+            // check_danger(pid, EVENT_MEMORY_MPROTECT, "mprotect", "", 0);
+
         }else{
 
-            chmod++;
+            stats.chmod++;
             if ((long long)regs->rax==0){
             fprintf(syscall_file,"== MPROTECT EXIT ==\n");
             fprintf(syscall_file,"result : SUCCESS");
             }else{
             fprintf(syscall_file,"== MPROTECT EXIT ==\n");
             fprintf(syscall_file,"result : FAILED");
-            }  
+            }
+             check_danger(pid, EVENT_MEMORY_MPROTECT, "mprotect", "", 0);
+  
      }
         break;
     

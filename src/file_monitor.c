@@ -10,7 +10,8 @@
 #include <string.h>
 #include "rules.h"
 #include "fd_tables.h"
-
+#include "dataset.h"
+#include "stat.h"
 
 // file_monitor.c trace file system calls (read,open,close) for enrty and exit 
 // and save the information in syscall.txt .
@@ -30,8 +31,10 @@ void handle_file_syscall(pid_t pid,
         case SYS_openat:
             
             if (entering)
-            {
-                openit++;
+            { 
+
+                stats.open++;
+                stats.file++;
                 // read  regs->rsi and save it in file name
                 read_string(pid, regs->rsi, filename, sizeof(filename));
                 get_file_entry(pid, regs, filename);
@@ -49,7 +52,8 @@ void handle_file_syscall(pid_t pid,
             }
             else
              {
-                openit++;
+                stats.open++;
+                stats.file++;
                check_danger(pid,EVENT_FILE_OPEN,"open",filename,0);
                get_fd_exit(regs);
              }
@@ -60,7 +64,8 @@ void handle_file_syscall(pid_t pid,
 
             if (entering)
             {
-                readit++;
+                stats.read++;
+                stats.file++;
                 char *path = search_fd(regs->rdi);
 
                 fprintf(syscall_file,"READ fd=%lld", regs->rdi);
@@ -84,9 +89,10 @@ void handle_file_syscall(pid_t pid,
 
             if (entering)
             {
-                file++;
+                stats.close++;
+                stats.file++;
                 char *path = search_fd(regs->rdi);
-
++
                 fprintf(syscall_file,"CLOSE fd=%lld", regs->rdi);
 
 
@@ -101,7 +107,8 @@ void handle_file_syscall(pid_t pid,
             }
             else
             {
-                file++;
+                stats.close++;
+                stats.file++;
                 remove_fd(regs->rdi);
             }
 

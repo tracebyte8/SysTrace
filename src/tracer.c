@@ -17,18 +17,10 @@
 #include "alert.h"
 #include "event.h"
 #include "rules.h"
+#include "stat.h"
+#include "dataset.h"
 
- int file=0;
- int process=0;
- int network=0;
- int forkit=0;
- int connectit=0;
- int excve=0;
- int readit=0;
- int openit=0;
- int memory=0;
- int chmod=0;
- int killit=0;
+
 
 // trace.c is the core of this project , save process in array , trace process using prtrace . 
 struct traced_process {
@@ -50,7 +42,7 @@ void remove_process(struct traced_process traced[],
             (*count)--;
    }
 
-void set_trace_options(pid_t pid)
+int set_trace_options(pid_t pid)
 {
     if (ptrace(PTRACE_SETOPTIONS,
            pid,
@@ -63,7 +55,9 @@ void set_trace_options(pid_t pid)
            PTRACE_O_TRACEEXIT) == -1)
 {
     perror("PTRACE_SETOPTIONS");
+    return -1;
 }
+return 1;
 }
 
 /// ////////////
@@ -95,12 +89,34 @@ void trace(char *program)
         _exit(1);
     }
 
-    waitpid(pid, &status, 0);
+if (waitpid(pid, &status, 0) == -1) {
+    perror("waitpid");
+    close_alert();
+    return;
+}
 
-    // If this stop is specifically because of a system call trap, alter the signal number slightly so I know.
-    
-    set_trace_options(pid);
+printf("DEBUG: initial status=0x%x\n", status);
 
+if (!WIFSTOPPED(status)) {
+    fprintf(stderr,
+            "DEBUG: child did not stop, status=0x%x\n",
+            status);
+    close_alert();
+    return;
+}
+
+printf("DEBUG: child stopped with signal=%d\n",
+       WSTOPSIG(status));
+
+if (set_trace_options(pid) == -1) {
+    fprintf(stderr,
+            "DEBUG: SETOPTIONS failed for pid=%d\n",
+            pid);
+    close_alert();
+    return;
+}
+
+printf("DEBUG: SETOPTIONS succeeded\n");
 
     struct user_regs_struct regs;
 
@@ -134,6 +150,13 @@ void trace(char *program)
              break;
              }
       }
+      if (current == -1) {
+    fprintf(stderr,
+            "DEBUG: PID %d not found in traced[]\n",
+            current_pid);
+    continue;
+}
+
 
         fprintf(syscall_file,"PID=%d PPID=%d STATUS=0x%x EVENT=%u SIG=%d\n",
               current_pid,
@@ -189,8 +212,8 @@ void trace(char *program)
                 traced[traced_count].entering = 1;
                 traced[traced_count].parent = current_pid; 
                 traced_count++;
-
-               set_trace_options(new_pid);
+               printf("tests ");
+               //set_trace_options(new_pid);
    }
 
 /* Ignore everything except syscall stops. */

@@ -5,4 +5,5 @@
 #include <syscall.h>
 void check_rules(event *event);
 void check_danger(pid_t pid,EventType type,char syscall[32],char path[256],int port);
+extern int label;
 #endif

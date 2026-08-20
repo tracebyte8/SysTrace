@@ -1,7 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "index.h"
 #include "tracer.h"
+#include "dataset.h"
+#include "stat.h"
+#include "rules.h"
 
 int main(int argc, char *argv[])
 {
@@ -10,10 +14,33 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    printf("DEBUG: starting trace()\n");
 
     trace(argv[1]);
+
+    printf("DEBUG: trace() returned\n");
+
+    printf("DEBUG: creating features.json\n");
+
+    save_dataset(argv[1], label);
+
+    printf("DEBUG: features.json created\n");
+
+    printf("DEBUG: running ML prediction\n");
+
+    int result = system("python3 ml/predict.py");
+
+    if (result != 0) {
+        fprintf(stderr,
+                "ERROR: ml/predict.py failed, return code=%d\n",
+                result);
+    }
+
+    printf("DEBUG: ML prediction finished\n");
+
     html(argv[1]);
 
+    reset_stats();
 
     printf("Report generated: report.html\n");
 

@@ -7,6 +7,7 @@
 FILE *syscall_file= NULL;
 static FILE *log_file = NULL;
 static FILE *alerts_json = NULL;
+
 //
 
  void open_alert(void){
@@ -28,6 +29,7 @@ static FILE *alerts_json = NULL;
     if (!alerts_json){
         perror("error open syscall ");
        }
+   
  }
 
 //

@@ -1,201 +1,155 @@
-# Linux System Call Monitor
+# SysTace
 
-<p align="center">
+A lightweight Linux system call monitor written in C using `ptrace`. It traces a target process, logs its syscall activity, flags suspicious behavior with a rule-based engine, and includes a small ML component that classifies syscall behavior as benign or malicious.
 
-![C](https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c&logoColor=white)
-![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
-![ptrace](https://img.shields.io/badge/ptrace-System%20Calls-blue?style=for-the-badge)
-![MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+Runtime output goes to `log.txt`, with high-severity alerts saved separately to `alerts.json`.
 
-</p>
-
-A lightweight **Linux System Call Monitor** written in **C** using the **ptrace** API.
-
-It traces Linux processes, monitors system calls, generates an HTML report, and detects suspicious behaviors through a rule-based detection engine. and save the logs in log.txt , and the high alerts in  alert.json .
-
-the project is under development , he needs some features and getting clean .
-
----
+This is a work in progress — features and internals are still changing.
 
 ## Features
 
-- Process tracing with `ptrace`
-- File activity monitoring
-- Process monitoring (`fork`, `execve`, ...)
-- Memory monitoring (`mmap`, `mprotect`, ...)
-- Network monitoring (`connect`, `socket`, ...)
+- Process tracing via `ptrace`
+- File, process, memory, and network activity monitoring
+- Syscall statistics collection
 - HTML report generation
-- Rule-based malware detection
-- Alert logging
-- Save high Alerts in json file 
-- Process blocking (`SIGKILL`) for critical events
+- Rule-based detection with alert logging
+- Process termination (`SIGKILL`) on critical events
+- ML-based behavioral classification (Random Forest)
 
----
+## Monitored Syscalls
 
 | Category | Syscalls |
-|----------|----------|
+|---|---|
 | File | `open`, `openat`, `read`, `write`, `close` |
-| Process | `fork`, `execve`, `waitpid` |
+| Process | `fork`, `clone`, `execve`, `wait4` |
 | Memory | `mmap`, `mprotect`, `munmap` |
 | Network | `socket`, `bind`, `listen`, `accept`, `connect`, `send`, `recv` |
 
----
-
 ## HTML Report
 
-![dashboardexmpl](image/dashboardexmpl.png)
+Running the monitor produces an HTML dashboard summarizing what it saw during execution.
 
----
+![dashboard example](image/dashboardexmpl.png)
 
-# Build
+## Machine Learning Detection
+
+The C monitor collects raw syscall counts and writes them out as a feature vector (`features.json`), which a separate Python script feeds into a trained Random Forest model for a benign/malicious prediction.
+
+```
+target program → ptrace monitor → syscall stats → features.json → ML model → benign/malicious
+```
+
+**Features (fixed order, used both for training and inference):**
+
+```python
+["file", "process", "network", "fork", "connect", "execve",
+ "read", "open", "close", "memory", "chmod", "killit"]
+```
+
+Example `features.json`:
+
+```json
+{
+  "file": 50, "process": 1, "network": 0, "fork": 0,
+  "connect": 0, "execve": 0, "read": 7, "open": 46,
+  "close": 46, "memory": 5, "chmod": 8, "killit": 0
+}
+```
+
+**Model:** `RandomForestClassifier(n_estimators=200, class_weight="balanced", random_state=42)`, trained on `dataset.csv`, stored at `ml/syscall_model.pkl`.
+
+```
+ml/
+├── train.py
+├── predict.py
+└── syscall_model.pkl
+```
+
+`predict.py` loads `features.json` and the saved model, and returns a classification the reporting system can use.
+
+### Limitations
+
+The ML layer is a supplementary signal, not a verdict. It's sensitive to dataset size and quality, class imbalance, train/test leakage, and how closely the test programs match real-world software and environments. Don't treat a program as malicious or benign purely on the model's output — the rule-based engine and raw syscall log are still the primary source of truth.
+
+## Build & Run
 
 ```bash
-make
+make          # build monitor, sample target, and test programs
+make run      # build + trace the sample target + run ML prediction + generate report
+make clean    # remove build artifacts
+make re       # clean rebuild
 ```
 
----
-
-# Usage
-
-The project includes a sample target program built from:
-
-```text
-src/test.c
-```
-
-Build and run the monitor with:
-
-```bash
-make
-make run
-```
-
-The `run` target will automatically:
-
-1. Build the Linux System Call Monitor.
-2. Build the sample target (`basic_target`).
-3. Execute the monitor against the sample target.
-
-If you want to monitor your own program, replace the source file specified by the `TARGET` variable in the `Makefile`:
-
-```make
-TARGET = src/test.c
-```
-
-For example:
+To monitor your own program instead of the bundled sample, edit the target in the `Makefile`:
 
 ```make
 TARGET = src/my_program.c
 ```
 
-Then rebuild and run:
+then `make clean && make && make run`.
 
-```bash
-make clean
-make
-make run
-```
+## Generated Files
 
----
+| File | Contents |
+|---|---|
+| `features.json` | Syscall stats fed to the ML detector |
+| `report.html` | Generated security report |
+| `alerts.json` | High-severity alerts from the rule engine |
+| `log.txt` | General monitoring log |
+| `syscall.txt` | Raw ptrace syscall trace |
 
-
-Generated files:
-
-```
-report.html
-log.txt
-alert.json
-syscall_file.txt
-```
-
----
+These are runtime output and shouldn't be committed.
 
 ## Project Structure
 
-
-```text
+```
 .
-├── dashboard
-│   ├── index.c
-│   └── style.css
-|
-├── include/
-│   ├── alert.h
-│   ├── fd_tables.h
-│   ├── file_monitor.h
-│   ├── rules.h
-│   ├── event.h
-│   ├── memory.h
-│   ├── memory_monitor.h
-│   ├── network_monitor.h
-│   ├── process_monitor.h
-│   ├── syscall.h
-│   └── tracer.h
-│
-├── src/
-│   ├── main.c
-│   ├── tracer.c
-│   ├── syscall.c
-│   ├── memory.c
-│   ├── rules.c
-│   ├── fd_tables.c
-│   ├── file_monitor.c
-│   ├── process_monitor.c
-│   ├── memory_monitor.c
-│   ├── network_monitor.c
-│   ├── alert.c
-│   └── test.c
-│
-├── report.html
-├── alert.json       
-├── log.txt     
-├── syscall_file.txt // the output is here     
-├── Makefile
-└── README.md
-=======
+├── dashboard/          # HTML report generation
+├── include/             # headers
+├── ml/                  # training + inference scripts, saved model
+├── src/                 # tracer, monitors, rule engine
+├── tests/               # benign/malicious sample programs
+├── dataset.csv
+└── Makefile
 ```
 
+## Dataset
 
----
+`dataset.csv` holds labeled syscall statistics used to train the model:
 
+```
+program,file,process,network,fork,connect,execve,read,open,close,memory,chmod,killit,label
+malicious_050,50,1,0,0,0,0,7,46,46,5,8,0,1
+benign_004,0,0,3,0,3,0,1,0,1,0,0,0,0
+```
 
+`program` is just an identifier — it's not used as a training feature. `label` is `0` (benign) or `1` (malicious).
+
+## Tests
+
+```
+tests/
+├── benign_fileread.c
+├── benign_idle.c
+├── mal_connect.c
+├── mal_fileopen.c
+├── mal_forkbomb.c
+└── mal_mmap_mprotect.c
+```
+
+These exercise the tracer, rule engine, and ML classifier against known-good and known-bad behavior. `mal_forkbomb.c` spawns a large number of processes — only run it in a VM or otherwise isolated environment.
 
 ## Roadmap
 
-- [x] ptrace tracer
-- [x] File monitor
-- [x] Process monitor
-- [x] Memory monitor
-- [x] Network monitor
-- [x] HTML report
-- [x] Rule engine 
-- [x] Alert system ( in progress.. )
-- [x] JSON alert logging 
-- [x] Interactive dashboard
-
----
+- [x] Core tracer, monitors, rule engine, alerting, dashboard, ML integration
+- [ ] Better ML dataset and evaluation
+- [ ] More syscall features
+- [ ] More robust process tracing
 
 ## Disclaimer
 
-This project is intended only for educational and research purposes.
-
-It demonstrates Linux process tracing through the ptrace interface.
-
-Use this software only on processes that you own or have permission to inspect.
-
-The author is not responsible for misuse, data loss, or legal consequences resulting from the use of this software.
-
----
+For educational and research use only. Only run this against processes you own or have explicit permission to inspect. Some test programs are intentionally aggressive — run them in isolated environments. The author isn't responsible for misuse, data loss, instability, or legal issues arising from use of this software.
 
 ## License
 
-This project is released under the **MIT License**.
-
----
-
-<p align="center">
-
-Made with ❤️ in C on Linux.
-
-</p>
 MIT

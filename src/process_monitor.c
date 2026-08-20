@@ -5,6 +5,8 @@
 #include "memory.h"
 #include "alert.h"
 #include "tracer.h"
+#include"stat.h"
+#include "rules.h"
 
 
 
@@ -20,7 +22,8 @@ char filename[256] = {0};
      switch (regs->orig_rax)
      {
      case SYS_execve:
-     excve++;
+       stats.execve++;
+       stats.process++;
        if (entering) {
         read_string(pid, regs->rdi, filename, sizeof(filename));
         write_alert("the process change his prog !");
@@ -33,19 +36,29 @@ char filename[256] = {0};
      
      case SYS_fork:
       
-        forkit++;
+        stats.fork++;
+        stats.process++;
         fprintf(syscall_file,"[%d] FORK REQUESTED ====/n",pid);
         write_alert("the father create another process !");
+                check_danger(pid, EVENT_PROCESS_FORK, "fork", filename, 0);
 
      break;
 
      case SYS_wait4:
 
-       process++;
+       stats.process++;
        fprintf(syscall_file,"WAIT4 pid=%lld\n",regs->rdi);
        if (regs->rdi > 0)
 
     break;
+
+    case SYS_clone:
+
+       stats.fork++;
+      stats.process++;
+       fprintf(syscall_file,"clone pid=%lld\n",regs->rdi);
+        write_alert("the father create another process !");
+        check_danger(pid, EVENT_PROCESS_FORK, "clone", filename, 0);
 
 
 
