@@ -6,6 +6,18 @@ Runtime output goes to `log.txt`, with high-severity alerts saved separately to 
 
 This is a work in progress — features and internals are still changing.
 
+# Project Status
+
+> **Development Status:** 🟡 On Hold
+
+Development of this project is currently paused.
+
+I am not actively working on this project at the moment, but I plan to return to it in the future and continue its development, improvements, and maintenance.
+
+The project is therefore **not abandoned** — development is simply on hold for now.
+
+I will update this README when active development resumes.
+
 ## Features
 
 - Process tracing via `ptrace`
