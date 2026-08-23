@@ -21,6 +21,8 @@ SRC = \
 	src/rules.c \
 	src/stat.c \
 	src/dataset.c \
+	src/namespace.c \
+	src/set_root.c \
 	dashboard/index.c
 
 OBJS = $(SRC:.c=.o)

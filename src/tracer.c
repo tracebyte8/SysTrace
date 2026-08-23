@@ -1,3 +1,4 @@
+
 #include "tracer.h"
 
 #include <stdio.h>
@@ -19,81 +20,97 @@
 #include "rules.h"
 #include "stat.h"
 #include "dataset.h"
+#include "isolate.h"
 
-
-
-// trace.c is the core of this project , save process in array , trace process using prtrace . 
+/*
+ * tracer.c
+ *
+ * Core tracing module.
+ *
+ * Creates the isolated target process, stores traced processes,
+ * and monitors their system calls using ptrace.
+ */
 struct traced_process {
-
     pid_t pid;
-    pid_t parent;       
+    pid_t parent;
     int entering;
-
 };
-
 
 void remove_process(struct traced_process traced[],
                     int *count,
                     int index)
-   {
-            for (int i = index; i < *count - 1; i++)
-            traced[i] = traced[i + 1];
+{
+    for (int i = index; i < *count - 1; i++)
+        traced[i] = traced[i + 1];
 
-            (*count)--;
-   }
+    (*count)--;
+}
 
 int set_trace_options(pid_t pid)
 {
     if (ptrace(PTRACE_SETOPTIONS,
-           pid,
-           0,
-           PTRACE_O_TRACESYSGOOD |
-           PTRACE_O_TRACEFORK |
-           PTRACE_O_TRACEVFORK |
-           PTRACE_O_TRACECLONE |
-           PTRACE_O_TRACEEXEC |
-           PTRACE_O_TRACEEXIT) == -1)
-{
-    perror("PTRACE_SETOPTIONS");
-    return -1;
-}
-return 1;
+               pid,
+               0,
+               PTRACE_O_TRACESYSGOOD |
+               PTRACE_O_TRACEFORK |
+               PTRACE_O_TRACEVFORK |
+               PTRACE_O_TRACECLONE |
+               PTRACE_O_TRACEEXEC |
+               PTRACE_O_TRACEEXIT) == -1)
+    {
+        perror("PTRACE_SETOPTIONS");
+        return -1;
+    }
+
+    return 1;
 }
 
-/// ////////////
 void trace(char *program)
-
 {
+    /*
+     * Build the argument array required by create_namespace().
+     * The sandbox child will execute program as target_argv[0].
+     */
+    char *target_argv[] = {
+        program,
+        NULL
+    };
 
-    pid_t pid = fork();
+    /*
+     * Create the isolated child process.
+     * create_namespace() returns the child's PID to the tracer.
+     */
+    pid_t pid = create_namespace(target_argv);
+
     int status;
+
     open_alert();
+
     if (pid == -1) {
-        perror("fork");
+        perror("create_namespace");
+        close_alert();
         return;
     }
 
-   struct traced_process traced[128];
-     int traced_count = 1;
-     traced[0].pid = pid;
-     traced[0].entering = 1;
-     traced[0].parent = 0;
+    /*
+     * Store the initial sandbox process in the traced process list.
+     */
+    struct traced_process traced[128];
+    int traced_count = 1;
 
-    
-    if (pid == 0) {
-        ptrace(PTRACE_TRACEME, 0, NULL, NULL);
-        execl(program, program, NULL);
-        printf("EXECUTING %s\n", program);
-        fflush(stdout);
-        perror("execl");
-        _exit(1);
+    traced[0].pid = pid;
+    traced[0].entering = 1;
+    traced[0].parent = 0;
+
+    /*
+     * The sandbox child calls PTRACE_TRACEME and stops with SIGSTOP.
+     * Wait for that initial stop before configuring ptrace options.
+     */
+    if (waitpid(pid, &status, 0) == -1) {
+        perror("waitpid");
+        close_alert();
+        return;
     }
-
-if (waitpid(pid, &status, 0) == -1) {
-    perror("waitpid");
-    close_alert();
-    return;
-}
 
 printf("DEBUG: initial status=0x%x\n", status);
 
