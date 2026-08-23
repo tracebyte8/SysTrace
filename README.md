@@ -1,160 +1,158 @@
-# SysTace
+# SysTrace
 
-A lightweight Linux system call monitor written in C using `ptrace`. It traces a target process, logs its syscall activity, flags suspicious behavior with a rule-based engine, and includes a small ML component that classifies syscall behavior as benign or malicious.
+**A Linux system-call monitoring and behavioral security analysis tool combining `ptrace`-based tracing, lightweight namespace isolation, and machine learning classification.**
 
-Runtime output goes to `log.txt`, with high-severity alerts saved separately to `alerts.json`.
+SysTrace observes the runtime behavior of a target program at the system-call level, extracts behavioral features, and classifies the observed activity as benign or malicious using a trained Random Forest model. It is built primarily in C for low-level tracing and isolation, with a Python/scikit-learn component for classification and reporting.
 
-This is a work in progress — features and internals are still changing.
+---
 
-# Project Status
+## Overview
 
+SysTrace traces a target process using `ptrace`, capturing system calls related to file access, process creation, network activity, and memory operations. The captured behavior is aggregated into syscall statistics and a feature vector, which is passed to a trained Random Forest classifier to produce a benign/malicious prediction. Results are compiled into a structured HTML security report.
 
+The project also includes a lightweight sandboxing layer built on Linux namespaces, used to isolate the target process during tracing.
 
+---
 
-## Features
+## Architecture
 
-- Process tracing via `ptrace`
-- File, process, memory, and network activity monitoring
-- Syscall statistics collection
-- HTML report generation
-- Rule-based detection with alert logging
-- Process termination (`SIGKILL`) on critical events
-- ML-based behavioral classification (Random Forest)
+```
+Target Program
+      ↓
+Linux Namespace / Lightweight Sandbox
+      ↓
+ptrace-based System Call Monitor
+      ↓
+File / Process / Network / Memory Monitoring
+      ↓
+Syscall Statistics + Security Rules
+      ↓
+Feature Vector
+      ↓
+Random Forest ML Model
+      ↓
+Benign / Malicious Classification
+      ↓
+HTML Security Report
+```
 
-## Monitored Syscalls
+---
 
-| Category | Syscalls |
+## Core Features
+
+### System-Call Tracing
+- Built on Linux `ptrace` to attach to and inspect target processes, including syscall arguments and registers.
+- Tracks a broad set of syscalls across four behavioral categories:
+  - **File operations** — `open`/`openat`, `read`, `close`, `chmod`
+  - **Process activity** — `execve`, `fork`, `clone`, `kill`
+  - **Network activity** — `socket`, `connect`
+  - **Memory activity** — `mmap`, `mprotect`
+- Maintains file-descriptor tracking to associate open file descriptors with their originating filenames.
+
+### Rule-Based Detection
+Heuristic rules flag suspicious behavioral patterns, including:
+- Access to sensitive files
+- Excessive file operations
+- Excessive process creation
+- Suspicious memory behavior (e.g. unusual `mmap`/`mprotect` usage)
+- Suspicious network activity
+
+### Lightweight Sandbox / Isolation Layer
+An isolation layer built directly on Linux namespace primitives:
+- `clone()` with `CLONE_NEWUSER`, `CLONE_NEWPID`, `CLONE_NEWNS`
+- Mount namespace configuration via `MS_PRIVATE`
+- Root filesystem switching with `pivot_root` and `umount2`
+- `tmpfs`-backed minimal root filesystem, constructed at runtime under `/tmp/systrace-root`
+
+This provides basic process, PID, and mount isolation for the traced target — it is **not** a container runtime replacement.
+
+### Machine Learning Classification
+- Feature vectors are derived from syscall statistics, with fields including:
+  `file, process, network, fork, connect, execve, read, open, close, memory, chmod, kill, label`
+- A `RandomForestClassifier` (scikit-learn) is trained on these vectors to distinguish benign from malicious behavior.
+- The trained model is serialized to `ml/syscall_model.pkl`.
+
+### Reporting
+- Structured output as `features.json` (raw feature data) and `report.html` (human-readable report).
+- The HTML report summarizes monitored activity, triggered security rules/events, syscall statistics, and the final ML classification.
+
+---
+
+## Example Feature Vector
+
+```
+[file, process, network, fork, connect, execve, read, open, close, memory, chmod, kill]
+[15,   2,       0,       0,    0,       2,      1,    10,   4,     14,     6,     0]
+```
+
+---
+
+## Technologies
+
+| Category | Stack |
 |---|---|
-| File | `open`, `openat`, `read`, `write`, `close` |
-| Process | `fork`, `clone`, `execve`, `wait4` |
-| Memory | `mmap`, `mprotect`, `munmap` |
-| Network | `socket`, `bind`, `listen`, `accept`, `connect`, `send`, `recv` |
+| Core tracer | C, Linux `ptrace` |
+| Isolation | Linux namespaces, `clone`, mount namespaces, `pivot_root`, `tmpfs` |
+| Machine learning | Python, scikit-learn, Random Forest |
+| Data / output | JSON, HTML |
+| Build | Make |
 
-## HTML Report
-
-Running the monitor produces an HTML dashboard summarizing what it saw during execution.
-
-![dashboard example](image/dashboardexmpl.png)
-
-## Machine Learning Detection
-
-The C monitor collects raw syscall counts and writes them out as a feature vector (`features.json`), which a separate Python script feeds into a trained Random Forest model for a benign/malicious prediction.
-
-```
-target program → ptrace monitor → syscall stats → features.json → ML model → benign/malicious
-```
-
-**Features (fixed order, used both for training and inference):**
-
-```python
-["file", "process", "network", "fork", "connect", "execve",
- "read", "open", "close", "memory", "chmod", "killit"]
-```
-
-Example `features.json`:
-
-```json
-{
-  "file": 50, "process": 1, "network": 0, "fork": 0,
-  "connect": 0, "execve": 0, "read": 7, "open": 46,
-  "close": 46, "memory": 5, "chmod": 8, "killit": 0
-}
-```
-
-**Model:** `RandomForestClassifier(n_estimators=200, class_weight="balanced", random_state=42)`, trained on `dataset.csv`, stored at `ml/syscall_model.pkl`.
-
-```
-ml/
-├── train.py
-├── predict.py
-└── syscall_model.pkl
-```
-
-`predict.py` loads `features.json` and the saved model, and returns a classification the reporting system can use.
-
-### Limitations
-
-The ML layer is a supplementary signal, not a verdict. It's sensitive to dataset size and quality, class imbalance, train/test leakage, and how closely the test programs match real-world software and environments. Don't treat a program as malicious or benign purely on the model's output — the rule-based engine and raw syscall log are still the primary source of truth.
-
-## Build & Run
-
-```bash
-make          # build monitor, sample target, and test programs
-make run      # build + trace the sample target + run ML prediction + generate report
-make clean    # remove build artifacts
-make re       # clean rebuild
-```
-
-To monitor your own program instead of the bundled sample, edit the target in the `Makefile`:
-
-```make
-TARGET = src/my_program.c
-```
-
-then `make clean && make && make run`.
-
-## Generated Files
-
-| File | Contents |
-|---|---|
-| `features.json` | Syscall stats fed to the ML detector |
-| `report.html` | Generated security report |
-| `alerts.json` | High-severity alerts from the rule engine |
-| `log.txt` | General monitoring log |
-| `syscall.txt` | Raw ptrace syscall trace |
-
-These are runtime output and shouldn't be committed.
+---
 
 ## Project Structure
 
 ```
-.
-├── dashboard/          # HTML report generation
-├── include/             # headers
-├── ml/                  # training + inference scripts, saved model
-├── src/                 # tracer, monitors, rule engine
-├── tests/               # benign/malicious sample programs
+linux-syscall-monitor/
+├── include/
+├── src/
+│   ├── tracer.c            # Core ptrace-based syscall tracer
+│   ├── syscall.c           # Syscall interception/handling
+│   ├── namespace.c         # Namespace/clone setup
+│   ├── set_root.c          # pivot_root / minimal rootfs setup
+│   ├── file_monitor.c      # File operation monitoring
+│   ├── process_monitor.c   # Process creation/execution monitoring
+│   ├── network_monitor.c   # Network activity monitoring
+│   ├── memory_monitor.c    # Memory-related activity monitoring
+│   ├── fd_tables.c         # File descriptor tracking
+│   ├── rules.c             # Rule-based detection logic
+│   ├── alert.c             # Security alert generation
+│   ├── stat.c               # Syscall statistics aggregation
+│   └── dataset.c           # Feature vector / dataset generation
+├── ml/
+│   ├── train.py             # Random Forest training script
+│   ├── predict.py           # Classification / inference script
+│   └── syscall_model.pkl    # Trained model
+├── dashboard/                # Report/dashboard assets
+├── tests/
+├── Makefile
 ├── dataset.csv
-└── Makefile
+└── README.md
 ```
 
-## Dataset
+---
 
-`dataset.csv` holds labeled syscall statistics used to train the model:
+## Limitations
 
-```
-program,file,process,network,fork,connect,execve,read,open,close,memory,chmod,killit,label
-malicious_050,50,1,0,0,0,0,7,46,46,5,8,0,1
-benign_004,0,0,3,0,3,0,1,0,1,0,0,0,0
-```
+- The sandbox is an **educational, lightweight isolation layer** — it is not a production-grade container runtime and is not a hardened malware analysis sandbox.
+- Namespace isolation covers user, PID, and mount namespaces only; it does not implement network namespace isolation, seccomp filtering, or cgroup resource limits.
+- `ptrace`-based tracing introduces observable overhead and is detectable/evadable by sufficiently sophisticated malware.
+- The ML classifier is trained on a limited feature set (aggregate syscall counts) and dataset; classification accuracy depends on the quality and diversity of training data.
+- Not intended for tracing untrusted or genuinely malicious binaries outside of a properly isolated research environment.
 
-`program` is just an identifier — it's not used as a training feature. `label` is `0` (benign) or `1` (malicious).
+---
 
-## Tests
+## Security Disclaimer
 
-```
-tests/
-├── benign_fileread.c
-├── benign_idle.c
-├── mal_connect.c
-├── mal_fileopen.c
-├── mal_forkbomb.c
-└── mal_mmap_mprotect.c
-```
+SysTrace is a research and learning project exploring Linux internals, system-call tracing, namespace-based isolation, and behavioral malware detection using machine learning. It is **not** a certified or production-ready security tool and should not be relied upon as the sole defense against malicious software. Use in isolated, controlled environments only.
 
-These exercise the tracer, rule engine, and ML classifier against known-good and known-bad behavior. `mal_forkbomb.c` spawns a large number of processes — only run it in a VM or otherwise isolated environment.
+---
 
-## Roadmap
+## Purpose
 
-- [x] Core tracer, monitors, rule engine, alerting, dashboard, ML integration
-- [ ] Better ML dataset and evaluation
-- [ ] More syscall features
-- [ ] More robust process tracing
-
-## Disclaimer
-
-For educational and research use only. Only run this against processes you own or have explicit permission to inspect. Some test programs are intentionally aggressive — run them in isolated environments. The author isn't responsible for misuse, data loss, instability, or legal issues arising from use of this software.
-
-## License
-
-MIT
+This project was built to explore and demonstrate:
+- Linux internals and system-call tracing with `ptrace`
+- Process, file, network, and memory monitoring
+- Filesystem isolation using Linux namespaces (`clone`, `pivot_root`, mount namespaces)
+- Sandbox architecture design
+- Behavioral security analysis
+- Applying machine learning (Random Forest) to cybersecurity classification problems
