@@ -9,7 +9,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 # LOAD DATASET
 # =========================
 
-df = pd.read_csv("../dataset.csv")
+df = pd.read_csv("../dataset_clean.csv")
 
 print("Dataset shape:", df.shape)
 

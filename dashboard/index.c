@@ -6,7 +6,7 @@
 void html(char *program)
 {
     char buffer[18];
-    FILE *fp = fopen("report.html", "w");
+    FILE *fp = fopen("security_report.html", "w");
     FILE *fpr =fopen("prediction.txt","r");
         if (fgets(buffer, sizeof(buffer), fpr) != NULL) {
         printf("Line read: %s", buffer);
