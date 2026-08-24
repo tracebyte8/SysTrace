@@ -86,6 +86,10 @@ This provides basic process, PID, and mount isolation for the traced target — 
 [15,   2,       0,       0,    0,       2,      1,    10,   4,     14,     6,     0]
 ```
 
+## Architecture
+
+![SysTrace architecture](image/architecture-diagram.png)
+
 ---
 
 ## Technologies
