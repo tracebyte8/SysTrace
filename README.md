@@ -71,7 +71,7 @@ This provides basic process, PID, and mount isolation for the traced target — 
   `file, process, network, fork, connect, execve, read, open, close, memory, chmod, kill, label`
 - A `RandomForestClassifier` (scikit-learn) is trained on these vectors to distinguish benign from malicious behavior.
 - The trained model is serialized to `ml/syscall_model.pkl`.
-- The [`DATASET`](https://github.com/tracebyte8/dataset_ebpf_syscall_derived.csv)
+- The  [`DATASET`](https://github.com/tracebyte8/dataset_ebpf_syscall_derived.csv)
 
 ### Reporting
 - Structured output as `features.json` (raw feature data) and `report.html` (human-readable report).

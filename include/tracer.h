@@ -1,5 +1,6 @@
 #ifndef TRACER_H
 #define TRACER_H
-void trace(char *program);
+#include <sys/types.h>
+pid_t trace(char *program);
 
 #endif

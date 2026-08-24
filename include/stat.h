@@ -1,7 +1,13 @@
 #ifndef STAT_H
 #define STAT_H
-
+#include <sys/types.h>
+#include <stdio.h>
+#define MAX_TRACED 128
 typedef struct {
+    pid_t pid;
+    int used;
+
+
     int file;
     int process;
     int network;
@@ -19,7 +25,9 @@ typedef struct {
     int label;
 } syscall_stat;
 
-extern syscall_stat stats;
+extern syscall_stat stats_table[MAX_TRACED];
+syscall_stat *get_stats(pid_t pid);
+void remove_sta(pid_t pid);
 void reset_stats(void);
 
 

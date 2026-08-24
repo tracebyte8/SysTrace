@@ -1,4 +1,5 @@
 #ifndef INDEX_H
 #define INDEX_H
-void html(char *program);
+#include <sys/types.h>
+void html(char *program, pid_t pid);
 #endif

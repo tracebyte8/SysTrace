@@ -26,7 +26,7 @@ static FILE *alerts_json = NULL;
 
    syscall_file=fopen("syscall.txt","a");
   
-    if (!alerts_json){
+    if (!syscall_file){
         perror("error open syscall ");
        }
    

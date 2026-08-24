@@ -65,7 +65,7 @@ int set_trace_options(pid_t pid)
     return 1;
 }
 
-void trace(char *program)
+pid_t trace(char *program)
 {
     /*
      * Build the argument array required by create_namespace().
@@ -80,16 +80,16 @@ void trace(char *program)
      * Create the isolated child process.
      * create_namespace() returns the child's PID to the tracer.
      */
-    pid_t pid = create_namespace(target_argv);
+    pid_t root_pid = create_namespace(target_argv);
 
     int status;
 
     open_alert();
 
-    if (pid == -1) {
+    if (root_pid == -1) {
         perror("create_namespace");
         close_alert();
-        return;
+        return -1;
     }
 
     /*
@@ -98,7 +98,7 @@ void trace(char *program)
     struct traced_process traced[128];
     int traced_count = 1;
 
-    traced[0].pid = pid;
+    traced[0].pid = root_pid;
     traced[0].entering = 1;
     traced[0].parent = 0;
 
@@ -106,10 +106,10 @@ void trace(char *program)
      * The sandbox child calls PTRACE_TRACEME and stops with SIGSTOP.
      * Wait for that initial stop before configuring ptrace options.
      */
-    if (waitpid(pid, &status, 0) == -1) {
+    if (waitpid(root_pid, &status, 0) == -1) {
         perror("waitpid");
         close_alert();
-        return;
+        return -1;
     }
 
 printf("DEBUG: initial status=0x%x\n", status);
@@ -119,18 +119,18 @@ if (!WIFSTOPPED(status)) {
             "DEBUG: child did not stop, status=0x%x\n",
             status);
     close_alert();
-    return;
+    return -1;
 }
 
 printf("DEBUG: child stopped with signal=%d\n",
        WSTOPSIG(status));
 
-if (set_trace_options(pid) == -1) {
+if (set_trace_options(root_pid) == -1) {
     fprintf(stderr,
             "DEBUG: SETOPTIONS failed for pid=%d\n",
-            pid);
+            root_pid);
     close_alert();
-    return;
+    return -1;
 }
 
 printf("DEBUG: SETOPTIONS succeeded\n");
@@ -290,4 +290,5 @@ printf("DEBUG: SETOPTIONS succeeded\n");
         traced[current].entering = !traced[current].entering;
     }
     close_alert();
+    return (root_pid);
 }

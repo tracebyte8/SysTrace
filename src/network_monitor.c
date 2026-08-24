@@ -11,16 +11,16 @@
 #include "alert.h"
 #include "stat.h"
 
-// network_monitor.c trace network system calls (socket,connect,sendto...) for enrty and exit 
-// and save the information in syscall.txt .
 void handle_network_syscall(pid_t pid,
                             struct user_regs_struct *regs,
                             int entering)
 {
         char filename[256];
         event e;
+        syscall_stat *stats = get_stats(pid);
 
-char *name = NULL;   // initialize it
+        char *name = NULL;
+
     if (entering) {
 
         switch (regs->orig_rax) {
@@ -38,7 +38,7 @@ char *name = NULL;   // initialize it
             break;
 
         case SYS_connect:
-            stats.connect++;
+            stats->connect++;
             fprintf(syscall_file,"========== CONNECT ==========\n");
 
             fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
@@ -59,7 +59,7 @@ char *name = NULL;   // initialize it
 
         case SYS_sendto:
 
-            stats.network++;
+            stats->network++;
             fprintf(syscall_file,"========== SENDTO ==========\n");
 
             fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
@@ -83,7 +83,7 @@ char *name = NULL;   // initialize it
 
         case SYS_recvfrom:
 
-            stats.network++;
+            stats->network++;
             fprintf(syscall_file,"========== RECVFROM ==========\n");
 
             fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
@@ -105,7 +105,7 @@ char *name = NULL;   // initialize it
 
         case SYS_bind:
 
-            stats.network++;
+            stats->network++;
             fprintf(syscall_file,"========== BIND ==========\n");
 
             fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
@@ -125,7 +125,7 @@ char *name = NULL;   // initialize it
 
         case SYS_listen:
 
-            stats.network++;
+            stats->network++;
             fprintf(syscall_file,"========== LISTEN ==========\n");
 
             fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
@@ -143,7 +143,7 @@ char *name = NULL;   // initialize it
 
         case SYS_accept:
 
-            stats.network++;
+            stats->network++;
             fprintf(syscall_file,"========== ACCEPT ==========\n");
 
             fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
@@ -171,7 +171,7 @@ char *name = NULL;   // initialize it
 
         case SYS_socket:
 
-            stats.network++;
+            stats->network++;
             fprintf(syscall_file,"========== SOCKET EXIT ==========\n");
             fprintf(syscall_file,"Return FD : %lld\n",
                    (long long)regs->rax);
@@ -179,15 +179,14 @@ char *name = NULL;   // initialize it
             get_fd_exit(regs);
 
             fprintf(syscall_file,"=================================\n");
-    
 
             check_danger(pid,EVENT_NETWORK_SOCKET,"socket",filename,0);
-            
+
             break;
 
         case SYS_connect:
-          
-            stats.connect++;
+
+            stats->connect++;
             fprintf(syscall_file,"========== CONNECT EXIT ==========\n");
             fprintf(syscall_file,"Return : %lld\n",
                    (long long)regs->rax);
@@ -197,7 +196,7 @@ char *name = NULL;   // initialize it
 
         case SYS_sendto:
 
-            stats.network++;
+            stats->network++;
             fprintf(syscall_file,"========== SENDTO EXIT ==========\n");
             fprintf(syscall_file,"Bytes Sent : %lld\n",
                    (long long)regs->rax);
@@ -206,7 +205,7 @@ char *name = NULL;   // initialize it
 
         case SYS_recvfrom:
 
-            stats.network++;
+            stats->network++;
             fprintf(syscall_file,"========== RECVFROM EXIT ==========\n");
             fprintf(syscall_file,"Bytes Received : %lld\n",
                    (long long)regs->rax);
@@ -215,8 +214,7 @@ char *name = NULL;   // initialize it
 
         case SYS_bind:
 
-
-           fprintf(syscall_file,"========== BIND EXIT ==========\n");
+            fprintf(syscall_file,"========== BIND EXIT ==========\n");
             fprintf(syscall_file,"Return : %lld\n",
                    (long long)regs->rax);
             fprintf(syscall_file,"===============================\n");
@@ -224,7 +222,7 @@ char *name = NULL;   // initialize it
 
         case SYS_listen:
 
-            stats.network++;
+            stats->network++;
             fprintf(syscall_file,"========== LISTEN EXIT ==========\n");
             fprintf(syscall_file,"Return : %lld\n",
                    (long long)regs->rax);
@@ -233,7 +231,7 @@ char *name = NULL;   // initialize it
 
         case SYS_accept:
 
-            stats.network++;
+            stats->network++;
             fprintf(syscall_file,"========== ACCEPT EXIT ==========\n");
             fprintf(syscall_file,"New Socket : %lld\n",
                    (long long)regs->rax);
