@@ -14,28 +14,10 @@ The project also includes a lightweight sandboxing layer built on Linux namespac
 
 ---
 
+
 ## Architecture
 
-```
-Target Program
-      ↓
-Linux Namespace / Lightweight Sandbox
-      ↓
-ptrace-based System Call Monitor
-      ↓
-File / Process / Network / Memory Monitoring
-      ↓
-Syscall Statistics + Security Rules
-      ↓
-Feature Vector
-      ↓
-Random Forest ML Model
-      ↓
-Benign / Malicious Classification
-      ↓
-HTML Security Report
-```
-
+![SysTrace architecture](image/architecture-diagram.png)
 ---
 
 ## Core Features
@@ -86,9 +68,6 @@ This provides basic process, PID, and mount isolation for the traced target — 
 [15,   2,       0,       0,    0,       2,      1,    10,   4,     14,     6,     0]
 ```
 
-## Architecture
-
-![SysTrace architecture](image/architecture-diagram.png)
 
 ---
 
