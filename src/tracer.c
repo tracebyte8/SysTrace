@@ -224,8 +224,10 @@ pid_t trace(char *program)
             traced_count++;
 
             printf("tests ");
-            /* set_trace_options(new_pid); */
-        }
+        if (set_trace_options(new_pid) == -1) {
+            perror("PTRACE_SETOPTIONS");
+        }    
+    }
 
         /* Ignore everything except syscall stops. */
         if (WSTOPSIG(status) != (SIGTRAP | 0x80))
