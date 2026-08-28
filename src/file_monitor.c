@@ -84,6 +84,7 @@ void handle_file_syscall(pid_t pid,
 
             if (entering)
             {
+                stats->read++;
     
                 char *path = search_fd(regs->rdi);
 

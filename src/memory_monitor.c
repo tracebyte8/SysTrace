@@ -23,7 +23,7 @@ void handle_memory_syscall(pid_t pid, struct user_regs_struct *regs, int enterin
                 fprintf(syscall_file,"FD      : %lld\n", (long long)regs->r8);
 
             } else {
-
+                stats->memory++;
                 fprintf(syscall_file,"== MMAP EXIT ==\n");
                 fprintf(syscall_file,"Return : %lld\n", (long long)regs->rax);
 
@@ -31,6 +31,7 @@ void handle_memory_syscall(pid_t pid, struct user_regs_struct *regs, int enterin
             break;
 
         case SYS_mprotect:
+
             if (entering) {
                 fprintf(syscall_file,"==MPROTECT ENTER==\n");
                 fprintf(syscall_file,"Addr : 0x%llx\n",(unsigned long long) regs->rdi);
@@ -38,7 +39,6 @@ void handle_memory_syscall(pid_t pid, struct user_regs_struct *regs, int enterin
                 fprintf(syscall_file,"Protection : %lld\n",(long long)regs->rdx);
 
             } else {
-
                 stats->mprotect++;
                 if ((long long)regs->rax == 0) {
                     fprintf(syscall_file,"== MPROTECT EXIT ==\n");

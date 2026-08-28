@@ -146,6 +146,14 @@ pid_t trace(char *program)
         /* Wait for whichever traced process stops next. */
         pid_t current_pid = waitpid(-1, &status, 0);
 
+        // check if processes > 128
+                if (traced_count >= 128) {
+                     fprintf(stderr, "Maximum traced processes reached\n");
+                     kill(current_pid, SIGKILL);
+                continue;
+                }
+
+
         if (current_pid == -1)
             break;
 
