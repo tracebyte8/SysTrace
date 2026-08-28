@@ -14,7 +14,7 @@ The project also includes a lightweight sandboxing layer built on Linux namespac
 
 ---
 ## PROBLEMS
-![systrace problems](image/ChatGPT%20Image%20Aug%2028,%202026,%2009_32_15%20PM%20(2).png)
+![systrace problems](image/SysTrace_Problems.png)
 ---
 
 ## Architecture
