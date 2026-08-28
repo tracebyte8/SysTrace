@@ -133,6 +133,10 @@ clean:
 	rm -f $(TEST_BIN)
 	rm -f report.html
 	rm -rf tests/bin
+	rm -rf security_report.html
+	rm -rf alerts.json
+	rm -rf features.json
+	rm -rf syscall.txt
 
 
 # =========================

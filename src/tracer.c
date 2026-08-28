@@ -190,13 +190,16 @@ pid_t trace(char *program)
             continue;
 
         /*
-         * If the process exited, remove it from the traced array
+         * If the process exited or killed by rule engine , remove it from the traced array 
          * and continue to the next iteration of the loop.
          */
-        if (WIFEXITED(status)) {
-            remove_process(traced,
-                           &traced_count,
-                           current);
+
+ if (WIFEXITED(status) || WIFSIGNALED(status)) {
+
+    printf("Process %d finished\n", current_pid);
+
+    remove_process(traced, &traced_count, current);
+
 
             if (traced_count == 0)
                 break;
@@ -231,7 +234,6 @@ pid_t trace(char *program)
             traced[traced_count].parent = current_pid;
             traced_count++;
 
-            printf("tests ");
         if (set_trace_options(new_pid) == -1) {
             perror("PTRACE_SETOPTIONS");
         }    
