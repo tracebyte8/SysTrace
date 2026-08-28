@@ -23,6 +23,7 @@ SRC = \
 	src/dataset.c \
 	src/namespace.c \
 	src/set_root.c \
+	src/score.c \
 	dashboard/index.c
 
 OBJS = $(SRC:.c=.o)

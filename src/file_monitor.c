@@ -27,8 +27,7 @@ void handle_file_syscall(pid_t pid,
 
             if (entering)
             {
-                stats->open++;
-                stats->file++;
+          
 
                 read_string(pid, regs->rsi, filename, sizeof(filename));
                 get_file_entry(pid, regs, filename);
@@ -58,8 +57,7 @@ void handle_file_syscall(pid_t pid,
 
     if (entering)
     {
-        stats->open++;
-        stats->file++;
+
 
         read_string(pid, regs->rdi, filename, sizeof(filename));  // note: rdi, not rsi
         get_file_entry(pid, regs, filename);
@@ -86,9 +84,7 @@ void handle_file_syscall(pid_t pid,
 
             if (entering)
             {
-                stats->read++;
-                stats->file++;
-
+    
                 char *path = search_fd(regs->rdi);
 
                 fprintf(syscall_file, "READ fd=%lld", regs->rdi);
@@ -114,9 +110,7 @@ void handle_file_syscall(pid_t pid,
 
             if (entering)
             {
-                stats->close++;
-                stats->file++;
-
+   
                 char *path = search_fd(regs->rdi);
 
                 fprintf(syscall_file, "CLOSE fd=%lld", regs->rdi);

@@ -1,4 +1,3 @@
-
 #include "tracer.h"
 
 #include <stdio.h>
@@ -37,8 +36,8 @@ struct traced_process {
 };
 
 void remove_process(struct traced_process traced[],
-                    int *count,
-                    int index)
+                     int *count,
+                     int index)
 {
     for (int i = index; i < *count - 1; i++)
         traced[i] = traced[i + 1];
@@ -112,150 +111,146 @@ pid_t trace(char *program)
         return -1;
     }
 
-printf("DEBUG: initial status=0x%x\n", status);
+    printf("DEBUG: initial status=0x%x\n", status);
 
-if (!WIFSTOPPED(status)) {
-    fprintf(stderr,
-            "DEBUG: child did not stop, status=0x%x\n",
-            status);
-    close_alert();
-    return -1;
-}
+    if (!WIFSTOPPED(status)) {
+        fprintf(stderr,
+                "DEBUG: child did not stop, status=0x%x\n",
+                status);
+        close_alert();
+        return -1;
+    }
 
-printf("DEBUG: child stopped with signal=%d\n",
-       WSTOPSIG(status));
+    printf("DEBUG: child stopped with signal=%d\n",
+           WSTOPSIG(status));
 
-if (set_trace_options(root_pid) == -1) {
-    fprintf(stderr,
-            "DEBUG: SETOPTIONS failed for pid=%d\n",
-            root_pid);
-    close_alert();
-    return -1;
-}
+    if (set_trace_options(root_pid) == -1) {
+        fprintf(stderr,
+                "DEBUG: SETOPTIONS failed for pid=%d\n",
+                root_pid);
+        close_alert();
+        return -1;
+    }
 
-printf("DEBUG: SETOPTIONS succeeded\n");
+    printf("DEBUG: SETOPTIONS succeeded\n");
 
     struct user_regs_struct regs;
 
-    // tracing Loop until the child process exits
-    
+    /* Tracing loop until the child process exits. */
     while (1) {
 
+        for (int i = 0; i < traced_count; i++) {
+            ptrace(PTRACE_SYSCALL, traced[i].pid, 0, 0);
+        }
 
-    for (int i = 0; i < traced_count; i++)
-    {
-        ptrace(PTRACE_SYSCALL, traced[i].pid, 0, 0);}
-
-        // search for who stopped and will get traced 
+        /* Wait for whichever traced process stops next. */
         pid_t current_pid = waitpid(-1, &status, 0);
-        
-    
-       if (current_pid == -1)
-         break;
 
+        if (current_pid == -1)
+            break;
 
-        // search for the current_pid in the traced array to find the index of the process that stopped ,
-        // if not found, continue to the next iteration of the loop
-        // to use entring and exiting 
-        
+        /*
+         * Find the index of the process that stopped in the
+         * traced array, so its entering/exiting state can be used.
+         * If not found, skip to the next iteration of the loop.
+         */
         int current = -1;
 
-
         for (int i = 0; i < traced_count; i++) {
-             if (traced[i].pid == current_pid) {
-                 current = i;
-             break;
-             }
-      }
-      if (current == -1) {
-    fprintf(stderr,
-            "DEBUG: PID %d not found in traced[]\n",
-            current_pid);
-    continue;
-}
+            if (traced[i].pid == current_pid) {
+                current = i;
+                break;
+            }
+        }
 
+        if (current == -1) {
+            fprintf(stderr,
+                    "DEBUG: PID %d not found in traced[]\n",
+                    current_pid);
+            continue;
+        }
 
-        fprintf(syscall_file,"PID=%d PPID=%d STATUS=0x%x EVENT=%u SIG=%d\n",
-              current_pid,
-              traced[current].parent,
-               status,
-               status >> 16,
-               WSTOPSIG(status));
-    
-        // if this pid not in array of traced process, continue to the next iteration of the loop
-       
+        fprintf(syscall_file, "PID=%d PPID=%d STATUS=0x%x EVENT=%u SIG=%d\n",
+                current_pid,
+                traced[current].parent,
+                status,
+                status >> 16,
+                WSTOPSIG(status));
+
+        /* If this pid is not in the traced array, skip it. */
         if (current == -1)
             continue;
 
-         // if the process exited, remove it from the traced array and continue to the next iteration of the loop
-    
-         if (WIFEXITED(status)) {
+        /*
+         * If the process exited, remove it from the traced array
+         * and continue to the next iteration of the loop.
+         */
+        if (WIFEXITED(status)) {
+            remove_process(traced,
+                           &traced_count,
+                           current);
 
-           remove_process(traced,
-                          &traced_count,
-                         current);
-
-           if (traced_count == 0)
+            if (traced_count == 0)
                 break;
 
-    continue;
-   }
+            continue;
+        }
 
-       // if the process is not stopped, continue to the next iteration of the loop
-       // If the process is not stopped, ignore it.
+        /* If the process is not stopped, ignore it. */
+        if (!WIFSTOPPED(status))
+            continue;
 
-       if (!WIFSTOPPED(status))
-           continue;
+        /* Check whether this stop is a ptrace event. */
+        unsigned int event = status >> 16;
 
-// Check whether this stop is a ptrace event.
-    unsigned int event = status >> 16;
+        if (event == PTRACE_EVENT_FORK ||
+            event == PTRACE_EVENT_VFORK ||
+            event == PTRACE_EVENT_CLONE)
+        {
+            unsigned long new_pid;
 
-    if (event == PTRACE_EVENT_FORK ||
-       event == PTRACE_EVENT_VFORK ||
-       event == PTRACE_EVENT_CLONE)
-   {
-        unsigned long new_pid;
+            ptrace(PTRACE_GETEVENTMSG,
+                   current_pid,
+                   0,
+                   &new_pid);
 
-        ptrace(PTRACE_GETEVENTMSG,
-              current_pid,
-               0,
-              &new_pid);
+            fprintf(syscall_file, "Parent %d -> Child %lu\n",
+                    current_pid,
+                    new_pid);
 
-        fprintf(syscall_file,"Parent %d -> Child %lu\n",
-              current_pid,
-               new_pid);
-    
-                traced[traced_count].pid = new_pid;
-                traced[traced_count].entering = 1;
-                traced[traced_count].parent = current_pid; 
-                traced_count++;
-               printf("tests ");
-               //set_trace_options(new_pid);
-   }
+            traced[traced_count].pid = new_pid;
+            traced[traced_count].entering = 1;
+            traced[traced_count].parent = current_pid;
+            traced_count++;
 
-/* Ignore everything except syscall stops. */
+            printf("tests ");
+            /* set_trace_options(new_pid); */
+        }
 
-   if (WSTOPSIG(status) != (SIGTRAP | 0x80))
-     continue;
+        /* Ignore everything except syscall stops. */
+        if (WSTOPSIG(status) != (SIGTRAP | 0x80))
+            continue;
 
-    if (ptrace(PTRACE_GETREGS,
-              current_pid,
-               0,
-              &regs) == -1)
-    {
-             perror("PTRACE_GETREGS");
-             break;
-    }
-        
+        if (ptrace(PTRACE_GETREGS,
+                   current_pid,
+                   0,
+                   &regs) == -1)
+        {
+            perror("PTRACE_GETREGS");
+            break;
+        }
 
         if (traced[current].entering) {
-            
-            fprintf(syscall_file,"ENTER %s (%lld)\n", syscall_name(regs.orig_rax), (long long)regs.orig_rax);
+
+            fprintf(syscall_file, "ENTER %s (%lld)\n",
+                    syscall_name(regs.orig_rax),
+                    (long long)regs.orig_rax);
 
             handle_file_syscall(current_pid, &regs, 1);
             handle_process_syscall(current_pid, &regs, 1);
             handle_memory_syscall(current_pid, &regs, 1);
             handle_network_syscall(current_pid, &regs, 1);
+
         } else {
 
             handle_file_syscall(current_pid, &regs, 0);
@@ -268,27 +263,28 @@ printf("DEBUG: SETOPTIONS succeeded\n");
 
                 char *name = search_fd((int)regs.rax);
 
-                fprintf(syscall_file,"EXIT  %s return=%lld",
-                       syscall_name(regs.orig_rax),
-                       (long long)regs.rax);
+                fprintf(syscall_file, "EXIT  %s return=%lld",
+                        syscall_name(regs.orig_rax),
+                        (long long)regs.rax);
 
                 if (name != NULL)
-                    fprintf(syscall_file," (%s)", name);
+                    fprintf(syscall_file, " (%s)", name);
 
-                fprintf(syscall_file,"\n");
+                fprintf(syscall_file, "\n");
 
             } else {
 
-                fprintf(syscall_file,"EXIT  %s return=%lld\n",
-                       syscall_name(regs.orig_rax),
-                       (long long)regs.rax);
+                fprintf(syscall_file, "EXIT  %s return=%lld\n",
+                        syscall_name(regs.orig_rax),
+                        (long long)regs.rax);
             }
         }
 
-        fprintf(syscall_file,"----------------------------------\n");
+        fprintf(syscall_file, "----------------------------------\n");
 
         traced[current].entering = !traced[current].entering;
     }
+
     close_alert();
     return (root_pid);
 }

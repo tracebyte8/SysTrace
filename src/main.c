@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 
     printf("DEBUG: starting trace()\n");
 
-  pid_t pid =  trace(argv[1]);
+    pid_t pid =  trace(argv[1]); // get pid 
 
     printf("DEBUG: trace() returned\n");
 
@@ -44,7 +44,6 @@ int main(int argc, char *argv[])
 
     reset_stats();
 
-    printf("Report generated: report.html\n");
 
     return 0;
 }

@@ -1,23 +1,28 @@
-import pandas as pd
-import joblib
+"""
+train.py
+--------
+Trains a Random Forest classifier on syscall-statistics features produced
+by the C monitoring program (via dataset.jsonl / features.json).
 
-from sklearn.model_selection import train_test_split
+Usage:
+    python train.py [path/to/dataset.jsonl]
+"""
+
+import json
+import sys
+import pickle
+
+import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+)
 
-# =========================
-# LOAD DATASET
-# =========================
-
-df = pd.read_csv("../dataset_clean.csv")
-
-print("Dataset shape:", df.shape)
-
-# =========================
-# FEATURES
-# =========================
-
-features = [
+# Exact feature order — MUST match predict.py and the C program's fields.
+FEATURES = [
     "file",
     "process",
     "network",
@@ -28,94 +33,94 @@ features = [
     "open",
     "close",
     "memory",
-    "chmod",
-    "killit"
+    "mprotect",
+    "ptrace",
 ]
 
-X = df[features]
-y = df["label"]
+RANDOM_STATE = 42
+MODEL_PATH = "syscall_model.pkl"
 
-# =========================
-# TRAIN / TEST SPLIT
-# =========================
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.20,
-    random_state=42,
-    stratify=y
-)
+def load_jsonl(path):
+    records = []
+    with open(path) as f:
+        for line_no, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                print(f"WARNING: skipping malformed JSON on line {line_no}", file=sys.stderr)
+                continue
 
-print("Training samples:", len(X_train))
-print("Testing samples:", len(X_test))
+            if "label" not in obj:
+                print(f"WARNING: skipping line {line_no}, missing 'label'", file=sys.stderr)
+                continue
 
-# =========================
-# MODEL
-# =========================
+            row = []
+            ok = True
+            for feat in FEATURES:
+                if feat not in obj:
+                    print(f"WARNING: skipping line {line_no}, missing feature '{feat}'", file=sys.stderr)
+                    ok = False
+                    break
+                row.append(obj[feat])
+            if not ok:
+                continue
 
-model = RandomForestClassifier(
-    n_estimators=200,
-    random_state=42,
-    class_weight="balanced"
-)
+            records.append((row, int(obj["label"])))
+    return records
 
-# =========================
-# TRAIN
-# =========================
 
-print("\nTraining model...")
+def main():
+    dataset_path = sys.argv[1] if len(sys.argv) > 1 else "dataset.jsonl"
 
-model.fit(X_train, y_train)
+    records = load_jsonl(dataset_path)
+    if not records:
+        print("ERROR: no usable records found in dataset.", file=sys.stderr)
+        sys.exit(1)
 
-# =========================
-# PREDICTION
-# =========================
+    X = np.array([r[0] for r in records], dtype=float)
+    y = np.array([r[1] for r in records], dtype=int)
 
-y_pred = model.predict(X_test)
+    print(f"Loaded {len(X)} samples ({(y == 0).sum()} benign, {(y == 1).sum()} malicious)")
 
-# =========================
-# RESULTS
-# =========================
-
-accuracy = accuracy_score(y_test, y_pred)
-
-print("\n==============================")
-print("MODEL RESULTS")
-print("==============================")
-
-print(f"Accuracy: {accuracy:.4f}")
-
-print("\nClassification report:")
-print(
-    classification_report(
-        y_test,
-        y_pred,
-        target_names=["BENIGN", "MALICIOUS"]
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y
     )
-)
 
-print("Confusion matrix:")
-print(confusion_matrix(y_test, y_pred))
+    clf = RandomForestClassifier(
+        n_estimators=200,
+        random_state=RANDOM_STATE,
+        n_jobs=-1,
+    )
+    clf.fit(X_train, y_train)
 
-# =========================
-# FEATURE IMPORTANCE
-# =========================
+    y_pred = clf.predict(X_test)
 
-print("\nFeature importance:")
+    print("\n=== Accuracy ===")
+    print(f"{accuracy_score(y_test, y_pred):.4f}")
 
-importance = pd.Series(
-    model.feature_importances_,
-    index=features
-).sort_values(ascending=False)
+    print("\n=== Classification Report ===")
+    print(classification_report(y_test, y_pred, target_names=["BENIGN", "MALICIOUS"]))
 
-print(importance)
+    print("=== Confusion Matrix ===")
+    print("           pred_benign  pred_malicious")
+    cm = confusion_matrix(y_test, y_pred)
+    for label, row in zip(["true_benign", "true_malicious"], cm):
+        print(f"{label:>15} {row[0]:>12} {row[1]:>15}")
 
-# =========================
-# SAVE MODEL
-# =========================
+    print("\n=== Feature Importance ===")
+    importances = clf.feature_importances_
+    for feat, imp in sorted(zip(FEATURES, importances), key=lambda x: -x[1]):
+        print(f"{feat:10s} {imp:.4f}")
 
-joblib.dump(model, "syscall_model.pkl")
+    with open(MODEL_PATH, "wb") as f:
+        pickle.dump({"model": clf, "features": FEATURES}, f)
 
-print("\nModel saved:")
-print("syscall_model.pkl")
+    print(f"\nModel saved to {MODEL_PATH}")
+
+
+if __name__ == "__main__":
+    main()

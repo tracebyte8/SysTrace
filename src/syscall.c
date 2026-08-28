@@ -29,6 +29,7 @@ const char *syscall_name(long syscall)
         case SYS_fork:               return "fork";
         case SYS_vfork:              return "vfork";
         case SYS_clone:              return "clone";
+        case SYS_ptrace:              return "ptrace";
         case SYS_wait4:              return "wait4";
         case SYS_exit:               return "exit";
         case SYS_exit_group:         return "exit_group";

@@ -16,7 +16,6 @@ void handle_memory_syscall(pid_t pid, struct user_regs_struct *regs, int enterin
     {
         case SYS_mmap:
             if (entering) {
-                stats->memory++;
                 fprintf(syscall_file,"==MMAP ENTER==\n");
                 fprintf(syscall_file,"Length : 0x%llx\n", (unsigned long long)regs->rsi);
                 fprintf(syscall_file,"Prot   : %lld\n", (long long)regs->rdx);
@@ -25,7 +24,6 @@ void handle_memory_syscall(pid_t pid, struct user_regs_struct *regs, int enterin
 
             } else {
 
-                stats->memory++;
                 fprintf(syscall_file,"== MMAP EXIT ==\n");
                 fprintf(syscall_file,"Return : %lld\n", (long long)regs->rax);
 
@@ -34,7 +32,6 @@ void handle_memory_syscall(pid_t pid, struct user_regs_struct *regs, int enterin
 
         case SYS_mprotect:
             if (entering) {
-                stats->chmod++;
                 fprintf(syscall_file,"==MPROTECT ENTER==\n");
                 fprintf(syscall_file,"Addr : 0x%llx\n",(unsigned long long) regs->rdi);
                 fprintf(syscall_file,"Lenght : %lld\n",(long long)regs->rsi);
@@ -42,7 +39,7 @@ void handle_memory_syscall(pid_t pid, struct user_regs_struct *regs, int enterin
 
             } else {
 
-                stats->chmod++;
+                stats->mprotect++;
                 if ((long long)regs->rax == 0) {
                     fprintf(syscall_file,"== MPROTECT EXIT ==\n");
                     fprintf(syscall_file,"result : SUCCESS");

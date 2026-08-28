@@ -4,9 +4,25 @@
 #include <signal.h>
 #include "tracer.h"
 #include "stat.h"
+#include "score.h"
 
 int label = 0;
 
+static void kill_process(event *event, syscall_stat *stats)
+{
+    if (event == NULL || stats == NULL)
+        return;
+
+    if (kill(event->pid, SIGKILL) == -1) {
+        perror("kill");
+        return;
+    }
+
+    stats->killit++;
+    stats->label = 1;
+
+    printf("[KILLED] Process PID %d\n", event->pid);
+}
 void check_danger(pid_t pid,
                   EventType type,
                   char syscall[32],
@@ -44,71 +60,101 @@ void check_danger(pid_t pid,
 
 void check_rules(event *event)
 {
-syscall_stat *stats = get_stats(event->pid);
+    if (event == NULL)
+        return;
+
+    syscall_stat *stats = get_stats(event->pid);
+
+    if (stats == NULL)
+        return;
+
+    if (strcmp(event->path, "/etc/shadow") == 0 ||
+        strcmp(event->path, "/etc/passwd") == 0) {
+
+        alert_high(event, "TRY TO ACCESS PASSWORD FILE");
+        kill_process(event, stats);
+
+        stats->label = 1;
+        return;
+    }
+
     switch (event->type) {
 
     case EVENT_FILE_OPEN:
         if (stats->open > 100) {
-            alert_high(event, "TRY TO OPEN FILE FOR PASSWORDS");
-            if (kill(event->pid, SIGKILL) == -1)
-                perror("kill");
-            stats->killit++;
-        } else {
-            label = 0;
+            alert_high(event, "EXCESSIVE FILE OPEN ACTIVITY");
+            kill_process(event, stats);
+            stats->label = 1;
+            return;
         }
         break;
 
     case EVENT_FILE_READ:
-        if (stats->read <= 100) {
-            label = 0;
-        } else {
-            alert_high(event, "TRY TO READ PASSWORDS");
-            if (kill(event->pid, SIGKILL) == -1)
-                perror("kill");
-            stats->killit++;
+        if (stats->read > 100) {
+            alert_high(event, "EXCESSIVE FILE READ ACTIVITY");
+            kill_process(event, stats);
+            stats->label = 1;
+            return;
         }
         break;
 
     case EVENT_PROCESS_FORK:
         if (stats->fork > 8) {
-            alert_high(event, "TRY TO CREATE ANOTHER PROCESS");
-            if (kill(event->pid, SIGKILL) == -1)
-                perror("kill");
-            stats->killit++;
-        } else {
-            label = 0;
+            alert_high(event, "TRY TO CREATE TOO MANY PROCESSES");
+            kill_process(event, stats);
+            stats->label = 1;
+            return;
         }
         break;
 
     case EVENT_PROCESS_EXEC:
-        alert_high(event, "TRY TO CHANGE THE PROG MISSION");
-        if (kill(event->pid, SIGKILL) == -1)
-            perror("kill");
-        stats->killit++;
-        break;
+        alert_high(event, "TRY TO CHANGE THE PROGRAM");
+        kill_process(event, stats);
+        stats->label = 1;
+        return;
 
     case EVENT_NETWORK_CONNECT:
         alert_high(event, "TRY TO CONNECT WITH SOMEONE");
-        if (kill(event->pid, SIGKILL) == -1)
-            perror("kill");
-        stats->killit++;
-        break;
+        kill_process(event, stats);
+        stats->label = 1;
+        return;
 
     case EVENT_NETWORK_SEND:
         alert_high(event, "TRY TO SEND SOMETHING");
-        if (kill(event->pid, SIGKILL) == -1)
-            perror("kill");
-        stats->killit++;
-        break;
+        kill_process(event, stats);
+        stats->label = 1;
+        return;
 
     case EVENT_MEMORY_MPROTECT:
-        alert_high(event, "TRY TO CHANGE PERMISSIONS");
-        if (kill(event->pid, SIGKILL) == -1)
-            perror("kill");
-        stats->killit++;
-        break;
+        alert_high(event, "TRY TO CHANGE MEMORY PERMISSIONS");
+        kill_process(event, stats);
+        stats->label = 1;
+        return;
+
+    case EVENT_PRCOESS_PTRACE:
+        alert_high(event, "TRY TO TRACE ANOTHER PROCESS");
+        kill_process(event, stats);
+        stats->label = 1;
+        return;
 
     default:
         break;
+    }
+
+    int risk = compute_risk_score(stats);
+
+    stats->risk_score = risk;
+
+    if (risk >= 70) {
+        alert_high(event, "HIGH RISK BEHAVIOR");
+        kill_process(event, stats);
+        stats->label = 1;
+    }
+    else if (risk >= 40) {
+        alert_high(event, "SUSPICIOUS BEHAVIOR");
+        stats->label = 1;
+    }
+    else {
+        stats->label = 0;
     }
 }

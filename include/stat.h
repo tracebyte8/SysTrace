@@ -18,11 +18,13 @@ typedef struct {
     int read;
     int open;
     int close;
+    int ptrace;
 
     int memory;
-    int chmod;
+    int mprotect;
     int killit;
     int label;
+    int risk_score;
 } syscall_stat;
 
 extern syscall_stat stats_table[MAX_TRACED];

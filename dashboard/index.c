@@ -3,61 +3,91 @@
 
 #include "tracer.h"
 #include "stat.h"
+#include "rules.h"
+
+int give_danger(char word[100], int risk, double score_model)
+{
+    int danger = 0;
+
+    if (risk >= 70 && score_model >= 60.0) {
+        danger = 100;
+    }
+    else if (risk >= 70) {
+        danger = 85;
+    }
+    else if (strcmp(word, "MALICIOUS") == 0 && score_model >= 80.0) {
+        danger = 80;
+    }
+    else if (risk >= 50 && score_model >= 50.0) {
+        danger = 65;
+    }
+    else if (risk >= 40) {
+        danger = 50;
+    }
+    else if (strcmp(word, "MALICIOUS") == 0 && score_model >= 50.0) {
+        danger = 45;
+    }
+    else if (risk >= 20) {
+        danger = 25;
+    }
+    else {
+        danger = 10;
+    }
+
+    return danger;
+}
 
 void html(char *program, pid_t pid)
 {
-    char buffer[18] = {0};
-
     FILE *fp = fopen("security_report.html", "w");
-    FILE *fpr = fopen("prediction.txt", "r");
 
-    if (fp == NULL)
-    {
+    if (fp == NULL) {
         perror("security_report.html");
         return;
     }
 
-    if (fpr != NULL)
-    {
-        if (fgets(buffer, sizeof(buffer), fpr) != NULL)
-        {
-            /* Remove newline from prediction.txt */
-            buffer[strcspn(buffer, "\n")] = '\0';
+    FILE *fptr = fopen("prediction.txt", "r");
 
-            printf("Prediction: %s\n", buffer);
-        }
-
-        fclose(fpr);
+    if (fptr == NULL) {
+        perror("prediction.txt");
+        fclose(fp);
+        return;
     }
+
+    char word[100] = {0};
+    double score = 0.0;
+
+    if (fgets(word, sizeof(word), fptr) == NULL) {
+        fprintf(stderr, "ERROR: cannot read prediction\n");
+        fclose(fptr);
+        fclose(fp);
+        return;
+    }
+
+    word[strcspn(word, "\n")] = '\0';
+
+    if (fscanf(fptr, "%lf", &score) != 1) {
+        fprintf(stderr, "ERROR: cannot read model score\n");
+        fclose(fptr);
+        fclose(fp);
+        return;
+    }
+
+    fclose(fptr);
 
     syscall_stat *stats = get_stats(pid);
 
-    if (stats == NULL)
-    {
+    if (stats == NULL) {
         fprintf(stderr, "ERROR: get_stats() returned NULL\n");
         fclose(fp);
         return;
     }
 
-    int total = stats->file +
-                stats->network +
-                stats->process;
-
-    int danger = 0;
-
-    if (total > 0)
-    {
-        danger = (stats->killit * 100) / total;
-    }
-
-    /*
-     * If the ML model classified the program as malicious,
-     * display maximum danger.
-     */
-    if (strcmp(buffer, "MALICIOUS") == 0)
-    {
-        danger = 100;
-    }
+    int danger = give_danger(
+        word,
+        stats->risk_score,
+        score
+    );
 
     fprintf(fp,
         "<!DOCTYPE html>\n"
@@ -104,21 +134,17 @@ void html(char *program, pid_t pid)
         "        <div class=\"danger-circle\" "
         "style=\"--danger-percent:%d%%\">\n"
 
-        "            <span class=\"danger-value\">%d</span>\n"
+        "            <span class=\"danger-value\">%d%%</span>\n"
 
         "        </div>\n"
 
         "        <div class=\"danger-info\">\n"
         "            <h2>Danger Level</h2>\n"
 
-        "            <p>%d dangerous event(s) detected.</p>\n"
-
-        "            <p>"
-        "100%% indicates that a dangerous event was detected "
-        "and the monitored process was blocked. "
-        "Additional suspicious syscalls may have been not "
-        "detected before the process was terminated."
-        "</p>\n"
+        "            <p>Rule engine score: %d%%</p>\n"
+        "            <p>ML prediction: %s</p>\n"
+        "            <p>ML confidence: %.2f%%</p>\n"
+        "            <p>Dangerous events: %d</p>\n"
 
         "        </div>\n"
 
@@ -131,25 +157,27 @@ void html(char *program, pid_t pid)
 
         program,
 
-        /* Summary */
         stats->fork,
         stats->open,
         stats->read,
         stats->connect,
-        stats->memory + stats->chmod,
+        stats->memory + stats->mprotect,
         stats->killit,
 
-        /* Danger circle */
+        danger,
         danger,
 
-        /* Danger value */
-        danger,
-
-        /* Dangerous events */
-        stats->killit
+        stats->risk_score,
+        word,
+        score,
+        stats->label
     );
 
     fclose(fp);
 
     printf("REPORT: security_report.html created\n");
+    printf("Rule engine score: %d%%\n", stats->risk_score);
+    printf("ML prediction: %s\n", word);
+    printf("ML confidence: %.2f%%\n", score);
+    printf("Final danger: %d%%\n", danger);
 }

@@ -38,7 +38,6 @@ void handle_network_syscall(pid_t pid,
             break;
 
         case SYS_connect:
-            stats->connect++;
             fprintf(syscall_file,"========== CONNECT ==========\n");
 
             fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
@@ -59,7 +58,6 @@ void handle_network_syscall(pid_t pid,
 
         case SYS_sendto:
 
-            stats->network++;
             fprintf(syscall_file,"========== SENDTO ==========\n");
 
             fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
@@ -83,7 +81,6 @@ void handle_network_syscall(pid_t pid,
 
         case SYS_recvfrom:
 
-            stats->network++;
             fprintf(syscall_file,"========== RECVFROM ==========\n");
 
             fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
@@ -105,7 +102,6 @@ void handle_network_syscall(pid_t pid,
 
         case SYS_bind:
 
-            stats->network++;
             fprintf(syscall_file,"========== BIND ==========\n");
 
             fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
@@ -125,7 +121,6 @@ void handle_network_syscall(pid_t pid,
 
         case SYS_listen:
 
-            stats->network++;
             fprintf(syscall_file,"========== LISTEN ==========\n");
 
             fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);
@@ -143,7 +138,6 @@ void handle_network_syscall(pid_t pid,
 
         case SYS_accept:
 
-            stats->network++;
             fprintf(syscall_file,"========== ACCEPT ==========\n");
 
             fprintf(syscall_file,"Socket   : %lld", (long long)regs->rdi);

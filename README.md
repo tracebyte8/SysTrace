@@ -18,6 +18,7 @@ The project also includes a lightweight sandboxing layer built on Linux namespac
 ## Architecture
 
 ![SysTrace architecture](image/architecture-diagram.png)
+
 ---
 
 ## Core Features
