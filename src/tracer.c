@@ -234,9 +234,9 @@ pid_t trace(char *program)
             traced[traced_count].parent = current_pid;
             traced_count++;
 
-        if (set_trace_options(new_pid) == -1) {
+       /*if (set_trace_options(new_pid) == -1) {
             perror("PTRACE_SETOPTIONS");
-        }    
+        }*/    
     }
 
         /* Ignore everything except syscall stops. */
