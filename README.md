@@ -67,8 +67,8 @@ This provides basic process, PID, and mount isolation for the traced target — 
 ## Example Feature Vector
 
 ```
-[file, process, network, fork, connect, execve, read, open, close, memory, chmod, kill]
-[15,   2,       0,       0,    0,       2,      1,    10,   4,     14,     6,     0]
+[file, process, network, fork, connect, execve, read, open, close, memory, mprotect, ptrace , label]
+[15,   2,       0,       0,    0,       2,      1,    10,   4,     14,     6,     0,     1]
 ```
 
 
