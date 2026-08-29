@@ -137,6 +137,8 @@ clean:
 	rm -rf alerts.json
 	rm -rf features.json
 	rm -rf syscall.txt
+	rm -rf log.txt
+	rm -rf prediction.txt
 
 
 # =========================

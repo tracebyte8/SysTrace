@@ -2,90 +2,155 @@
 
 #include <stdio.h>
 #include <sys/syscall.h>
+
 #include "memory.h"
 #include "alert.h"
 #include "tracer.h"
 #include "stat.h"
 #include "rules.h"
 
-void handle_process_syscall(pid_t pid,
-                            struct user_regs_struct *regs,
-                            int entering)
+void handle_process_syscall(
+    pid_t pid,
+    struct user_regs_struct *regs,
+    int entering
+)
 {
     char filename[256] = {0};
+
     syscall_stat *stats = get_stats(pid);
+
+    if (stats == NULL)
+        return;
 
     switch (regs->orig_rax)
     {
     case SYS_execve:
 
         if (entering) {
-            read_string(pid, regs->rdi, filename, sizeof(filename));
-            fprintf(syscall_file,"========== EXECVE ==========\n");
-            fprintf(syscall_file,"Program : %s\n", filename);
-            fprintf(syscall_file,"============================\n");
-        }else{
-            
 
-          stats->execve++;
-          stats->process++;
+            read_string(
+                pid,
+                regs->rdi,
+                filename,
+                sizeof(filename)
+            );
 
-            read_string(pid, regs->rdi, filename, sizeof(filename));
-            write_alert("the process change his prog !");
-            fprintf(syscall_file,"========== EXECVE ==========\n");
-            fprintf(syscall_file,"Program : %s\n", filename);
-            fprintf(syscall_file,"============================\n");
+            stats->execve++;
+            stats->process++;
+
+            check_danger(
+                pid,
+                EVENT_PROCESS_EXEC,
+                "execve",
+                filename,
+                0
+            );
+
+            fprintf(
+                syscall_file,
+                "========== EXECVE ==========\n"
+                "Program : %s\n"
+                "============================\n",
+                filename
+            );
         }
 
         break;
+
 
     case SYS_fork:
 
-   
-        if (entering){
+        if (entering) {
 
-        fprintf(syscall_file,"[%d] FORK REQUESTED ====/n",pid);
-        write_alert("the father create another process !");
-        check_danger(pid, EVENT_PROCESS_FORK, "fork", filename, 0);
+            stats->fork++;
+            stats->process++;
 
-        }else{
-                  stats->fork++;
-                  stats->process++; 
+            fprintf(
+                syscall_file,
+                "[%d] FORK REQUESTED\n",
+                pid
+            );
+
+            check_danger(
+                pid,
+                EVENT_PROCESS_FORK,
+                "fork",
+                filename,
+                0
+            );
         }
+
         break;
 
+
     case SYS_wait4:
-        if(!entering){
-        stats->process++;
-        fprintf(syscall_file,"WAIT4 pid=%lld\n",regs->rdi);
 
-        if (regs->rdi > 0)
-            break;
+        if (!entering) {
 
-        }break;
+            stats->process++;
+
+            fprintf(
+                syscall_file,
+                "WAIT4 pid=%lld\n",
+                (long long)regs->rdi
+            );
+        }
+
+        break;
+
 
     case SYS_clone:
 
- 
-if (entering){
-        fprintf(syscall_file,"clone pid=%lld\n",regs->rdi);
-        write_alert("the father create another process !");
-        check_danger(pid, EVENT_PROCESS_FORK, "clone", filename, 0);
-    }else{
-              stats->fork++;
-        stats->process++; 
+        if (entering) {
 
-    }
+            stats->fork++;
+            stats->process++;
+
+            fprintf(
+                syscall_file,
+                "[%d] CLONE REQUESTED\n",
+                pid
+            );
+
+            check_danger(
+                pid,
+                EVENT_PROCESS_FORK,
+                "clone",
+                filename,
+                0
+            );
+        }
+
         break;
 
-    case SYS_ptrace :
 
-    fprintf(syscall_file,"PTRACE pid=%lld\n",regs->rdi);
-    write_alert("some process want to trace another one !");
-        check_danger(pid,EVENT_PRCOESS_PTRACE, "ptrace", filename, 0);
-        stats->ptrace++;
-                stats->process++; 
+    case SYS_ptrace:
 
+        if (entering) {
+
+            fprintf(
+                syscall_file,
+                "PTRACE request=%lld\n",
+                (long long)regs->rdi
+            );
+
+            stats->ptrace++;
+            stats->process++;
+
+            write_alert(
+                "some process wants to trace another process!"
+            );
+
+            check_danger(
+                pid,
+                EVENT_PRCOESS_PTRACE,
+                "ptrace",
+                filename,
+                0
+            );
+        }
+
+        break;
 
 
     default:

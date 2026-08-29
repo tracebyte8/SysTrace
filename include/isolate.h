@@ -1,7 +1,8 @@
 #ifndef ISOLATE_H
-#define ISOKATE_H
-#include <unistd.h>
+#define ISOLATE_H
 
-static int child_function(void *arg);
+#include <sys/types.h>
+
 pid_t create_namespace(char **target_argv);
+
 #endif
