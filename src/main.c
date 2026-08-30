@@ -18,6 +18,10 @@ int main(int argc, char *argv[])
     printf("DEBUG: starting trace()\n");
 
     pid_t pid =  trace(argv[1]); // get pid 
+    if (pid == -1){
+        perror("error in root pid tracer.c");
+        return 0;
+    } 
 
     printf("DEBUG: trace() returned\n");
 
