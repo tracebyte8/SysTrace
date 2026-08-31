@@ -12,10 +12,7 @@ SysTrace traces a target process using `ptrace`, capturing system calls related 
 
 The project also includes a lightweight sandboxing layer built on Linux namespaces, used to isolate the target process during tracing.
 
----
-## PROBLEMS
-![systrace problems](image/SysTrace_Problems.png)
----
+
 
 ## Architecture
 
