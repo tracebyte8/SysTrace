@@ -1,5 +1,7 @@
 #include "score.h"
 #include "stat.h"
+#include <stdio.h>
+#include <stddef.h>
 
 /* how "loud" a signal each category is, not how often it fires */
 #define W_CONNECT   5.0
@@ -14,7 +16,8 @@
 #define W_FILE      0.3
 #define W_READ      0.2
 #define W_CLOSE     0.1
-#define W_MAX       6.0   /* highest weight above, used to bound the score */
+
+#define W_MAX       6.0
 
 int compute_risk_score(syscall_stat *stats)
 {
@@ -36,7 +39,7 @@ int compute_risk_score(syscall_stat *stats)
         stats->ptrace;
 
     if (total == 0)
-        return 0;
+        return stats->killit ? 90 : 0;
 
     double risky =
         stats->connect  * W_CONNECT +
@@ -56,8 +59,40 @@ int compute_risk_score(syscall_stat *stats)
 
     int score = (int)((risky / max_possible) * 100);
 
+    /*
+     * killit means the rule engine has
+     * explicitly identified dangerous behavior.
+     */
+    if (stats->killit > 0 && score < 90)
+        score = 90;
+
     if (score > 100)
         score = 100;
 
     return score;
+}
+
+int compute_main_risk_score(void)
+{
+    syscall_stat stats = {0};
+
+    stats.file     = all_stats.file;
+    stats.process  = all_stats.process;
+    stats.network  = all_stats.network;
+
+    stats.fork     = all_stats.fork;
+    stats.connect  = all_stats.connect;
+    stats.execve   = all_stats.execve;
+    stats.read     = all_stats.read;
+    stats.open     = all_stats.open;
+    stats.close    = all_stats.close;
+    stats.ptrace   = all_stats.ptrace;
+
+    stats.memory   = all_stats.memory;
+    stats.mprotect = all_stats.mprotect;
+
+    /* IMPORTANT */
+    stats.killit   = all_stats.killit;
+
+    return compute_risk_score(&stats);
 }

@@ -24,7 +24,7 @@ static void kill_process(
         perror("kill");
         return;
     }
-
+    all_stats.dangerous_events++;
     stats->killit++;
     stats->label = 1;
 
@@ -53,6 +53,7 @@ void check_danger(
         strcmp(syscall, "connect") == 0 ||
         strcmp(syscall, "open") == 0 ||
         strcmp(syscall, "execve") == 0 ||
+        strcmp(syscall, "mprotect") == 0 ||
         strcmp(syscall, "read") == 0;
 
     if (!suspicious)
@@ -97,13 +98,18 @@ void check_rules(event *event)
     if (event == NULL)
         return;
 
-
     syscall_stat *stats = get_stats(event->pid);
 
     if (stats == NULL)
         return;
 
 
+    /*
+     * Check direct access to sensitive files.
+     *
+     * Do not return here because we still want
+     * to calculate the risk score below.
+     */
     if (
         strcmp(event->path, "/etc/shadow") == 0 ||
         strcmp(event->path, "/etc/passwd") == 0
@@ -117,8 +123,6 @@ void check_rules(event *event)
         kill_process(event, stats);
 
         stats->label = 1;
-
-        return;
     }
 
 
@@ -136,8 +140,6 @@ void check_rules(event *event)
             kill_process(event, stats);
 
             stats->label = 1;
-
-            return;
         }
 
         break;
@@ -155,8 +157,6 @@ void check_rules(event *event)
             kill_process(event, stats);
 
             stats->label = 1;
-
-            return;
         }
 
         break;
@@ -177,11 +177,7 @@ void check_rules(event *event)
 
             kill_process(event, stats);
 
-            stats->risk_score = 20;
-
             stats->label = 1;
-
-            return;
         }
 
         break;
@@ -199,8 +195,6 @@ void check_rules(event *event)
             kill_process(event, stats);
 
             stats->label = 1;
-
-            return;
         }
 
         break;
@@ -217,7 +211,7 @@ void check_rules(event *event)
 
         stats->label = 1;
 
-        return;
+        break;
 
 
     case EVENT_NETWORK_SEND:
@@ -231,11 +225,13 @@ void check_rules(event *event)
 
         stats->label = 1;
 
-        return;
+        break;
 
 
     case EVENT_MEMORY_MPROTECT:
 
+
+    if (stats->mprotect> 5){
         alert_high(
             event,
             "TRY TO CHANGE MEMORY PERMISSIONS"
@@ -243,9 +239,10 @@ void check_rules(event *event)
 
         kill_process(event, stats);
 
-        stats->label = 1;
+        stats->label = 1;}
+        
 
-        return;
+        break;
 
 
     case EVENT_PRCOESS_PTRACE:
@@ -259,7 +256,7 @@ void check_rules(event *event)
 
         stats->label = 1;
 
-        return;
+        break;
 
 
     default:
@@ -267,8 +264,15 @@ void check_rules(event *event)
     }
 
 
+    /*
+     * Calculate the risk of the current PID.
+     *
+     * This is reached even when a specific rule
+     * above detected something dangerous.
+     */
     int risk = compute_risk_score(stats);
 
+ 
     stats->risk_score = risk;
 
 
@@ -296,6 +300,10 @@ void check_rules(event *event)
 
     else {
 
-        stats->label = 0;
+        /*
+         * Don't overwrite an already dangerous label.
+         */
+        if (stats->label != 1)
+            stats->label = 0;
     }
 }

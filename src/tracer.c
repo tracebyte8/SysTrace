@@ -60,7 +60,6 @@ int set_trace_options(pid_t pid)
 
     return 1;
 }
-
 pid_t trace(char *program)
 {
     char *target_argv[] = {
@@ -235,11 +234,19 @@ pid_t trace(char *program)
             WIFSIGNALED(status)
         )
         {
+
+    syscall_stat *stats = get_stats(current_pid);
+
+    if (stats != NULL) {
+        record_process_score(stats);
+        counter_main(stats);
+        remove_sta(current_pid);
+    }
+
             printf(
                 "Process %d finished\n",
                 current_pid
             );
-
             remove_process(
                 traced,
                 &traced_count,

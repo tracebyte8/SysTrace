@@ -33,6 +33,7 @@ void handle_memory_syscall(pid_t pid, struct user_regs_struct *regs, int enterin
         case SYS_mprotect:
 
             if (entering) {
+
                 fprintf(syscall_file,"==MPROTECT ENTER==\n");
                 fprintf(syscall_file,"Addr : 0x%llx\n",(unsigned long long) regs->rdi);
                 fprintf(syscall_file,"Lenght : %lld\n",(long long)regs->rsi);
@@ -40,6 +41,8 @@ void handle_memory_syscall(pid_t pid, struct user_regs_struct *regs, int enterin
 
             } else {
                 stats->mprotect++;
+                check_danger(pid,EVENT_MEMORY_MPROTECT, "mprotect", "test", 0);
+
                 if ((long long)regs->rax == 0) {
                     fprintf(syscall_file,"== MPROTECT EXIT ==\n");
                     fprintf(syscall_file,"result : SUCCESS");
@@ -48,7 +51,6 @@ void handle_memory_syscall(pid_t pid, struct user_regs_struct *regs, int enterin
                     fprintf(syscall_file,"result : FAILED");
                 }
 
-                check_danger(pid, EVENT_MEMORY_MPROTECT, "mprotect", "", 0);
             }
             break;
 

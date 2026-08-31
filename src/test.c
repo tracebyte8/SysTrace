@@ -1,36 +1,27 @@
-// Simulates a shellcode-injection / self-modifying-code pattern:
-// repeatedly maps memory, then flips it executable via mprotect.
-// This is the kind of syscall sequence AV/EDR tools flag as suspicious.
+// Simulates a fork-bomb-like pattern WITHOUT actually bombing the system.
+// Real fork bombs recurse unbounded; here we hard-cap total children
+// and always wait() them, so it's safe to run repeatedly.
 #include <stdio.h>
-#include <sys/mman.h>
-#include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
-#define ROUNDS 20
-#define PAGE_SIZE 4096
+#define MAX_CHILDREN 15
 
 int main(void)
 {
-    for (int i = 0; i < ROUNDS; i++) {
-        void *mem = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
-                          MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        if (mem == MAP_FAILED) {
-            perror("mmap");
-            continue;
+    for (int i = 0; i < MAX_CHILDREN; i++) {
+        pid_t pid = fork();
+
+        if (pid == 0) {
+            // Child: do nothing meaningful, exit immediately
+            _exit(0);
+        } else if (pid > 0) {
+            waitpid(pid, NULL, 0); // reap before spawning the next one
+        } else {
+            perror("fork");
         }
-
-        // Write a harmless byte pattern (no real shellcode)
-        memset(mem, 0x90, 16); // NOP-like filler, never executed for real
-
-        // Flip page to executable — this is the suspicious step
-        if (mprotect(mem, PAGE_SIZE, PROT_READ | PROT_EXEC) != 0) {
-            perror("mprotect");
-        }
-
-        munmap(mem, PAGE_SIZE);
-        usleep(10000); // small delay so the trace isn't instantaneous
     }
 
-    printf("mal_mmap_mprotect: done (%d rounds)\n", ROUNDS);
+    printf("mal_forkbomb: done (%d children spawned, all reaped)\n", MAX_CHILDREN);
     return 0;
 }

@@ -4,10 +4,12 @@
 #include "tracer.h"
 #include "stat.h"
 #include "rules.h"
+#include "score.h"
 
-int give_danger(char word[100], int risk, double score_model)
+int give_danger(char word[100], double score_model)
 {
     int danger = 0;
+    int risk = compute_main_risk_score();
 
     if (risk >= 70 && score_model >= 60.0) {
         danger = 100;
@@ -37,8 +39,11 @@ int give_danger(char word[100], int risk, double score_model)
     return danger;
 }
 
+
 void html(char *program, pid_t pid)
 {
+    (void)pid;
+
     FILE *fp = fopen("security_report.html", "w");
 
     if (fp == NULL) {
@@ -75,19 +80,17 @@ void html(char *program, pid_t pid)
 
     fclose(fptr);
 
-    syscall_stat *stats = get_stats(pid);
 
-    if (stats == NULL) {
-        fprintf(stderr, "ERROR: get_stats() returned NULL\n");
-        fclose(fp);
-        return;
-    }
+    /*
+     * all_stats contains the aggregated statistics
+     * from all traced processes.
+     */
 
     int danger = give_danger(
         word,
-        stats->risk_score,
         score
     );
+
 
     fprintf(fp,
         "<!DOCTYPE html>\n"
@@ -157,27 +160,30 @@ void html(char *program, pid_t pid)
 
         program,
 
-        stats->fork,
-        stats->open,
-        stats->read,
-        stats->connect,
-        stats->memory + stats->mprotect,
-        stats->killit,
+        all_stats.fork,
+        all_stats.open,
+        all_stats.read,
+        all_stats.connect,
+        all_stats.memory + all_stats.mprotect,
+        all_stats.killit,
 
         danger,
         danger,
 
-        stats->risk_score,
+        compute_main_risk_score(),
         word,
         score,
-        stats->label
+        all_stats.dangerous_events
     );
+
 
     fclose(fp);
 
     printf("REPORT: security_report.html created\n");
-    printf("Rule engine score: %d%%\n", stats->risk_score);
+    printf("Rule engine score: %d%%\n", compute_main_risk_score());
     printf("ML prediction: %s\n", word);
     printf("ML confidence: %.2f%%\n", score);
     printf("Final danger: %d%%\n", danger);
+        printf("Danger events: %d\n", all_stats.dangerous_events);
+
 }
