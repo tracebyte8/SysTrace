@@ -104,7 +104,7 @@ void html(char *program, pid_t pid)
 
         "<body>\n"
 
-        "    <h1>System Call Monitor</h1>\n"
+        "    <h1>SysTrace</h1>\n"
         "    <h3>%s</h3>\n"
 
         "    <section id=\"summary\">\n"

@@ -24,8 +24,11 @@ static void kill_process(
         perror("kill");
         return;
     }
+
     all_stats.dangerous_events++;
     stats->killit++;
+    all_stats.killit++;
+
     stats->label = 1;
 
     printf(
@@ -33,7 +36,6 @@ static void kill_process(
         event->pid
     );
 }
-
 
 void check_danger(
     pid_t pid,
@@ -131,7 +133,7 @@ void check_rules(event *event)
     {
     case EVENT_FILE_OPEN:
 
-        if (stats->open > 100) {
+        if (stats->open > 50) {
 
             alert_high(
                 event,
@@ -278,8 +280,7 @@ void check_rules(event *event)
     stats->risk_score = risk;
 
 
-    if (risk >= 70) {
-
+    if (risk >= 70 && stats->killit == 0) {
         alert_high(
             event,
             "HIGH RISK BEHAVIOR"

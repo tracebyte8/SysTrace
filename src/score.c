@@ -91,7 +91,6 @@ int compute_main_risk_score(void)
     stats.memory   = all_stats.memory;
     stats.mprotect = all_stats.mprotect;
 
-    /* IMPORTANT */
     stats.killit   = all_stats.killit;
 
     return compute_risk_score(&stats);

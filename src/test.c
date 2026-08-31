@@ -1,125 +1,45 @@
-#define _GNU_SOURCE
-
+// Simulates a makeattern (the kind of
+// behavior ransomware or info-stealers show: opening many files fast).
+// Only touches files it creates itself in /tmp — nothing pre-existing.
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/ptrace.h>
-#include <sys/wait.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+#define FILE_COUNT 30
 
 int main(void)
 {
-    printf("[TEST] Starting SysTrace test\n");
+    char path[64];
 
-    /* =========================
-     * OPEN + READ + CLOSE
-     * ========================= */
-    printf("[TEST] Opening /etc/hostname\n");
-
-    int fd = open("/etc/hostname", O_RDONLY);
-
-    if (fd >= 0) {
-        char buffer[128];
-
-        ssize_t n = read(fd, buffer, sizeof(buffer) - 1);
-
-        if (n > 0) {
-            buffer[n] = '\0';
-            printf("[TEST] Read: %s\n", buffer);
-        }
-
-        close(fd);
-    }
-
-    /* =========================
-     * MPROTECT
-     * ========================= */
-    printf("[TEST] mmap + mprotect\n");
-
-    void *mem = mmap(
-        NULL,
-        4096,
-        PROT_READ | PROT_WRITE,
-        MAP_PRIVATE | MAP_ANONYMOUS,
-        -1,
-        0
-    );
-
-    if (mem != MAP_FAILED) {
-
-        if (mprotect(mem, 4096, PROT_READ | PROT_EXEC) == 0)
-            printf("[TEST] mprotect RW -> RX succeeded\n");
-
-        munmap(mem, 4096);
-    }
-
-    /* =========================
-     * PTRACE
-     * ========================= */
-    printf("[TEST] ptrace\n");
-
-    long ret = ptrace(PTRACE_TRACEME, 0, NULL, NULL);
-
-    if (ret == 0)
-        printf("[TEST] ptrace succeeded\n");
-    else
-        perror("[TEST] ptrace");
-
-    /* =========================
-     * FORK
-     * ========================= */
-    printf("[TEST] Creating children\n");
-
-    for (int i = 0; i < 3; i++) {
-
-        pid_t pid = fork();
-
-        if (pid < 0) {
-            perror("fork");
-            break;
-        }
-
-        if (pid == 0) {
-
-            printf("[CHILD] PID: %d\n", getpid());
-
-            int child_fd = open(
-                "/tmp/systrace-test.txt",
-                O_WRONLY | O_CREAT | O_APPEND,
-                0644
-            );
-
-            if (child_fd >= 0) {
-
-                const char *msg = "SysTrace test\n";
-
-                write(child_fd, msg, 14);
-
-                close(child_fd);
-            }
-
-            _exit(0);
+    // First create disposable files so this test doesn't depend on
+    // anything already on disk.
+    for (int i = 0; i < FILE_COUNT; i++) {
+        snprintf(path, sizeof(path), "/tmp/mal_test_file_%d.tmp", i);
+        int fd = open(path, O_CREAT | O_WRONLY, 0600);
+        if (fd >= 0) {
+            write(fd, "x", 1);
+            close(fd);
         }
     }
 
-    /* Parent waits for children */
-    while (wait(NULL) > 0)
-        ;
+    // Now rapidly open/read/close them all — this is the suspicious burst
+    for (int i = 0; i < FILE_COUNT; i++) {
+        snprintf(path, sizeof(path), "/tmp/mal_test_file_%d.tmp", i);
+        int fd = open(path, O_RDONLY);
+        if (fd >= 0) {
+            char buf[1];
+            read(fd, buf, 1);
+            close(fd);
+        }
+    }
 
-    /* =========================
-     * EXEC
-     * ========================= */
-    printf("[TEST] Executing /bin/true\n");
+    // Cleanup
+    for (int i = 0; i < FILE_COUNT; i++) {
+        snprintf(path, sizeof(path), "/tmp/mal_test_file_%d.tmp", i);
+        unlink(path);
+    }
 
-    char *args[] = {
-        "true",
-        NULL
-    };
-
-    execv("/bin/true", args);
-
-    perror("[TEST] execv");
-
+    printf("mal_fileopen: done (%d files touched)\n", FILE_COUNT);
     return 0;
 }
