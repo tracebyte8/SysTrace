@@ -54,6 +54,7 @@ void check_danger(
         strcmp(syscall, "open") == 0 ||
         strcmp(syscall, "execve") == 0 ||
         strcmp(syscall, "mprotect") == 0 ||
+        strcmp(syscall, "ptrace") == 0 ||
         strcmp(syscall, "read") == 0;
 
     if (!suspicious)
@@ -246,6 +247,7 @@ void check_rules(event *event)
 
 
     case EVENT_PRCOESS_PTRACE:
+
 
         alert_high(
             event,

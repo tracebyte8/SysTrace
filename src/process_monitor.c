@@ -145,7 +145,7 @@ void handle_process_syscall(
                 pid,
                 EVENT_PRCOESS_PTRACE,
                 "ptrace",
-                filename,
+                " ",
                 0
             );
         }
