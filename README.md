@@ -1,185 +1,339 @@
 # SysTrace 2.0
 
-`ptrace`-based Linux syscall monitor. Runs a target binary in an isolated namespace sandbox, traces its syscalls (including forked/cloned/exec'd children), and scores behavior with a weighted rule engine plus a Random Forest classifier.
+`ptrace`-based Linux syscall monitor and sandbox for analyzing ELF binaries.
+
+SysTrace runs a target inside an isolated Linux namespace environment, traces its system calls and child processes, applies rule-based detection and weighted risk scoring, then uses a Random Forest classifier as a secondary signal.
 
 ## Features
 
-- `ptrace` tracer with automatic `fork`/`vfork`/`clone`/`execve` following
-- Namespace sandbox: new user/PID/mount namespace, `pivot_root`'d into a minimal rootfs
+- `ptrace` syscall tracing
+- Follows `fork`, `vfork`, `clone`, and `execve`
+- Linux user, PID, and mount namespaces
+- Minimal `pivot_root` sandbox
+- File, process, memory, and network monitoring
 - Per-process and aggregate syscall statistics
-- Rule-based detection with automatic `SIGKILL` enforcement
-- Weighted risk scoring (0–100)
-- Random Forest ML classifier (scikit-learn) as a secondary signal
-- HTML report + JSON alert/feature logs + raw syscall trace
+- Rule-based detection with `SIGKILL` enforcement
+- Weighted risk score from 0–100
+- Random Forest ML classification
+- HTML security report
+- JSON and text logs
+- Raw syscall trace
 
+## Quick Start
 
+Clone the repository:
 
-`config.sh` does the whole setup + build + run in one step: checks for `gcc`/`make`/`python3`, creates and activates a `.venv`, installs Python deps (`ml/requirements.txt` if present, else `numpy scikit-learn joblib`), runs `make clean && make`, then executes `./linux_syscall_monitor <target>`. `<target>` must already be a compiled ELF binary, same as manual usage below. No `ml/requirements.txt` currently ships in the repo, so the fallback install runs; `joblib` isn't actually imported by `predict.py`/`train.py` (both use `pickle`).
+```bash
+git clone https://github.com/tracebyte8/SysTrace.git
+cd SysTrace
+```
 
----
-## Dashboard : 
-![SysTrace dashboard](image/dashboardexmpl.png)
----
+Make the configuration script executable:
+
+```bash
+chmod +x config.sh
+```
+
+Run SysTrace against a compiled ELF binary:
+
+```bash
+./config.sh ./tests/bin/mal_fileopen
+```
+
+`config.sh` automatically:
+
+1. Checks `gcc`, `make`, and `python3`
+2. Creates `.venv`
+3. Installs the required Python dependencies
+4. Builds SysTrace
+5. Runs the target through the monitor
+6. Generates the security report
+
+No manual Python package installation is required.
+
+> The target must be an already compiled ELF binary. A `.c` source file cannot be passed directly.
+
 ## Architecture
 
-```
-target binary
-  → sandbox setup     (namespace.c, set_root.c: clone() + pivot_root)
-  → ptrace tracer      (tracer.c: PTRACE_SYSCALL loop)
-  → syscall monitors   (file/process/memory/network_monitor.c)
-  → syscall stats      (stat.c: per-pid + aggregate)
-  → rule engine         (rules.c: check_danger / check_rules, may SIGKILL)
-  → risk score          (score.c: compute_risk_score)
-  → features.json       (dataset.c)
-  → ML prediction       (ml/predict.py → syscall_model.pkl)
-  → security_report.html (dashboard/index.c)
+```text
+Target ELF
+    │
+    ▼
+Namespace Sandbox
+    │
+    ├── CLONE_NEWUSER
+    ├── CLONE_NEWPID
+    ├── CLONE_NEWNS
+    └── pivot_root
+    │
+    ▼
+ptrace Tracer
+    │
+    ├── Syscall tracing
+    ├── fork/vfork/clone following
+    └── exec following
+    │
+    ▼
+System Call Monitors
+    │
+    ├── File
+    ├── Process
+    ├── Memory
+    └── Network
+    │
+    ▼
+Statistics
+    │
+    ▼
+Rule Engine
+    │
+    ├── Alerts
+    └── SIGKILL enforcement
+    │
+    ▼
+Risk Scoring
+    │
+    ├── features.json
+    │
+    └── Random Forest
+             │
+             ▼
+      security_report.html
 ```
 
 ## What It Monitors
 
-| Category | Tracked syscalls | Notes |
-| --- | --- | --- |
-| File | `open`, `openat`, `read`, `close` | `write` is logged only, no counter/rule |
-| Process | `execve`, `fork`, `clone`, `wait4`, `ptrace` | |
-| Memory | `mmap`, `mprotect` | `munmap`, `brk` logged only |
-| Network | `socket`, `connect`, `sendto`, `recvfrom`, `bind`, `listen`, `accept` | |
+| Category | Tracked syscalls |
+|---|---|
+| File | `open`, `openat`, `read`, `close` |
+| Process | `execve`, `fork`, `clone`, `wait4`, `ptrace` |
+| Memory | `mmap`, `mprotect` |
+| Network | `socket`, `connect`, `sendto`, `recvfrom`, `bind`, `listen`, `accept` |
 
-All syscalls (not just these) are written to `syscall.txt` via a name table in `syscall.c`, falling back to `"unknown"`.
+Other syscalls are also written to `syscall.txt` when their names are available in the syscall table.
 
-## Detection & Rules
+## Detection Rules
 
 | Trigger | Condition | Action |
-| --- | --- | --- |
-| Sensitive file access | `open`/`openat` → `/etc/passwd` or `/etc/shadow` | Alert + `SIGKILL` |
-| Excessive file opens | `open` > 100 (per PID) | Alert + `SIGKILL` |
-| Excessive file reads | `read` > 29 (per PID) | Alert + `SIGKILL` |
-| Excessive forking | `fork`/`clone` > 8 (per PID) | Alert + `SIGKILL` |
-| Excessive re-exec | `execve` > 8 (per PID) | Alert + `SIGKILL` |
-| Network connect | any `connect()` | Alert + `SIGKILL` |
-| Network send | any tracked send | Alert + `SIGKILL` |
-| Memory protection change | `mprotect` > 5 (per PID) | Alert + `SIGKILL` |
-| Cross-process tracing | any `ptrace()` | Alert + `SIGKILL` |
-| High weighted risk | `compute_risk_score()` ≥ 70 | Alert + `SIGKILL` |
-| Moderate weighted risk | score in [40, 70) | Alert only |
+|---|---|---|
+| Sensitive file access | `/etc/passwd` or `/etc/shadow` | Alert + `SIGKILL` |
+| Excessive file opens | `open` > 100 | Alert + `SIGKILL` |
+| Excessive reads | `read` > 29 | Alert + `SIGKILL` |
+| Excessive forking | `fork`/`clone` > 8 | Alert + `SIGKILL` |
+| Excessive re-execution | `execve` > 8 | Alert + `SIGKILL` |
+| Network connection | Any `connect()` | Alert + `SIGKILL` |
+| Network send | Tracked send syscall | Alert + `SIGKILL` |
+| Memory protection change | `mprotect` > 5 | Alert + `SIGKILL` |
+| Cross-process tracing | Any `ptrace()` | Alert + `SIGKILL` |
+| High risk | Score ≥ 70 | Alert + `SIGKILL` |
+| Moderate risk | 40 ≤ score < 70 | Alert |
 
-`killit` counts `SIGKILL`s issued by the rule engine (per-PID and aggregate). It's a record of enforcement, not a rule itself — but it directly floors the risk score (below).
+`killit` records `SIGKILL` actions performed by the rule engine.
 
 ## Risk Scoring
 
-```
-score = (Σ count_i × weight_i) / (total_syscalls × 6.0) × 100
+SysTrace calculates a weighted behavioral score:
+
+```text
+score =
+    (sum of weighted syscall counts)
+    / (total syscalls × 6.0)
+    × 100
 ```
 
-| Category | Weight | | Category | Weight |
-| --- | --- | --- | --- | --- |
-| `ptrace` | 6.0 | | `process` | 1.5 |
-| `connect` | 5.0 | | `open` | 0.5 |
-| `network` | 4.0 | | `memory` (mmap) | 0.5 |
-| `execve` | 3.0 | | `file` | 0.3 |
-| `mprotect` | 3.0 | | `read` | 0.2 |
-| `fork` | 2.0 | | `close` | 0.1 |
+The score is clamped to `0–100`.
 
-If `killit > 0`, score floors at 90 regardless of the weighted sum. Zero syscalls → 90 if killed, else 0. Clamped to 100. The report's "Danger Level" further combines this with the ML prediction (`give_danger()` in `dashboard/index.c`).
+If the rule engine kills a process, the risk score is forced to at least `90`.
+
+### Weights
+
+| Behavior | Weight |
+|---|---:|
+| `ptrace` | 6.0 |
+| `connect` | 5.0 |
+| network | 4.0 |
+| `execve` | 3.0 |
+| `mprotect` | 3.0 |
+| `fork` | 2.0 |
+| process | 1.5 |
+| `open` | 0.5 |
+| `mmap` | 0.5 |
+| file | 0.3 |
+| `read` | 0.2 |
+| `close` | 0.1 |
 
 ## Machine Learning
 
-- `save_dataset()` appends one JSON-Lines record to `features.json` per run (12 syscall counters + `program` + `label`). `label` is set automatically from whether `check_danger()` flagged anything — not hand-annotated.
-- `main.c` runs `python3 ml/predict.py`, which loads `ml/syscall_model.pkl` (`RandomForestClassifier(n_estimators=200)`, trained by `ml/train.py`) and scores the latest record.
-- Output (`BENIGN`/`MALICIOUS` + confidence) is written to `prediction.txt` and read back into the HTML report.
-- Deps: `numpy`, `scikit-learn`. No training dataset ships in this repo, only the pretrained model. No published accuracy — treat the prediction as a secondary signal, not a verdict.
+SysTrace uses a Random Forest classifier as a secondary behavioral signal.
 
-## Reports
+The model is located at:
 
-| File | Written by | Mode | Contents |
-| --- | --- | --- | --- |
-| `security_report.html` | `dashboard/index.c` | overwrite | Summary, rule score, ML prediction, final danger % |
-| `alerts.json` | `alert.c` | append | One JSON object per high-severity match |
-| `features.json` | `dataset.c` | append | JSON-Lines syscall counts, ML input |
-| `prediction.txt` | `ml/predict.py` | overwrite | Label + confidence |
-| `log.txt` | `alert.c` | append | Plain-text alert messages |
-| `syscall.txt` | `alert.c`/`tracer.c` | append | Raw ENTER/EXIT syscall trace |
+```text
+ml/syscall_model.pkl
+```
 
-Everything except `security_report.html`/`prediction.txt` accumulates across runs — `make clean` between traces.
+The monitored syscall statistics are exported to:
+
+```text
+features.json
+```
+
+`ml/predict.py` reads the latest feature record and produces:
+
+```text
+prediction.txt
+```
+
+Example:
+
+```text
+Program: ./tests/bin/mal_fileopen
+
+Prediction: MALICIOUS
+Confidence: 91.42%
+```
+
+The ML result should be treated as a **secondary signal**, not a definitive verdict.
+
+The repository does not ship the original training dataset or published model accuracy.
+
+## Reports and Logs
+
+| File | Description |
+|---|---|
+| `security_report.html` | Final HTML security report |
+| `alerts.json` | JSON security alerts |
+| `features.json` | ML feature records |
+| `prediction.txt` | Latest ML prediction |
+| `log.txt` | Human-readable alerts |
+| `syscall.txt` | Raw syscall trace |
+
+`features.json`, `alerts.json`, `log.txt`, and `syscall.txt` accumulate records across runs.
+
+`security_report.html` and `prediction.txt` are overwritten on each run.
+
+## Dashboard
+
+![SysTrace Dashboard](image/dashboardexmpl.png)
+
+The HTML report contains:
+
+- Rule engine score
+- ML prediction
+- ML confidence
+- Final danger percentage
+- Security events
+- Behavioral statistics
 
 ## Project Structure
 
-```
+```text
 SysTrace/
-├── src/          # tracer, sandbox, monitors, rules, scoring, dataset writer
-├── include/      # headers
-├── dashboard/    # index.c (HTML report) + style.css
-├── ml/           # train.py, predict.py, syscall_model.pkl
-├── tests/        # benign_*.c / mal_*.c sample programs
-├── image/        # README assets
-├── makefile
-└── config.sh     # setup + build + run, see Quick Start
+├── src/
+│   ├── tracer.c
+│   ├── namespace.c
+│   ├── set_root.c
+│   ├── file_monitor.c
+│   ├── process_monitor.c
+│   ├── memory_monitor.c
+│   ├── network_monitor.c
+│   ├── rules.c
+│   ├── score.c
+│   ├── stat.c
+│   └── dataset.c
+│
+├── include/
+├── dashboard/
+│   ├── index.c
+│   └── style.css
+│
+├── ml/
+│   ├── train.py
+│   ├── predict.py
+│   └── syscall_model.pkl
+│
+├── tests/
+│   └── bin/
+│
+├── image/
+├── Makefile
+├── config.sh
+└── README.md
 ```
 
-## Build
+## Build Manually
 
+If you do not want to use `config.sh`:
+
+```bash
+make
 ```
-make          # build linux_syscall_monitor, basic_target, tests/bin/*
-make clean    # remove binaries and all runtime output
-make re       # clean + all
+
+Clean the project:
+
+```bash
+make clean
 ```
 
-Deps: `gcc`, Linux headers. Sandbox uses `CLONE_NEWUSER|CLONE_NEWPID|CLONE_NEWNS` — usually no root needed, but requires unprivileged user namespaces to be enabled.
+Rebuild:
 
-## Usage
-
+```bash
+make re
 ```
-chmod +x config.sh
 
-./config.sh ./path/to/binary
-```
----
+Manual Python setup:
 
-Argument must be a compiled ELF binary, not a `.c` file. `basic_target` (from `src/test.c`) exercises file I/O, `mmap`/`mprotect`, `ptrace`, `fork`, and `execve` in one run. Use `./config.sh ./path/to/binary` instead to build and run in one step (see Quick Start).
-
-
-
-| Program | Behavior |
-| --- | --- |
-| `benign_idle.c` | Sleeps, exits — near-zero baseline |
-| `benign_fileread.c` | Create/read/remove one temp file |
-| `mal_fileopen.c` | Burst open/read/close of 30 files |
-| `mal_forkbomb.c` | 15 children, capped and reaped |
-| `mal_connect.c` | 12 `connect()` attempts to `127.0.0.1` |
-| `mal_mmap_mprotect.c` | 20 rounds of `mmap` + `mprotect` to RX |
-
-## Python Setup
-
-`config.sh` handles this automatically in a `.venv` (see Quick Start). To do it manually instead:
-
-```
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install numpy scikit-learn
 ```
 
-`ml/syscall_model.pkl` is already trained. To retrain: `python ml/train.py path/to/dataset.jsonl`.
+## Test Programs
 
-## Example Output
+| Program | Behavior |
+|---|---|
+| `benign_idle.c` | Sleeps and exits |
+| `benign_fileread.c` | Creates, reads, and removes a temporary file |
+| `mal_fileopen.c` | Opens/reads/closes multiple files |
+| `mal_forkbomb.c` | Creates a capped number of children |
+| `mal_connect.c` | Attempts multiple network connections |
+| `mal_mmap_mprotect.c` | Repeated `mmap`/`mprotect` operations |
 
+Example:
+
+```bash
+./config.sh ./tests/bin/mal_forkbomb
 ```
-REPORT: security_report.html created
-Rule engine score: 78%
-ML prediction: MALICIOUS
-ML confidence: 91.42%
-Final danger: 85%
-Danger events: 3
+
+Then open:
+
+```bash
+xdg-open security_report.html
 ```
 
-## Security / Limitations
+## Security and Limitations
 
-- Single-target dynamic analysis tool, not an EDR/HIDS — no persistent agent, no kernel-level enforcement.
-- `check_danger()` dereferences `path` unconditionally; `connect()`'s exit handler always passes `path == NULL`, so tracing `connect()` can crash the monitor.
-- Sandbox only copies in the target binary, `libc.so.6`, and `ld-linux-x86-64.so.2` at hardcoded non-multiarch paths — other dependencies or distro layouts won't run.
-- Target is copied into the sandbox as a fixed `/basic_target`, but the tracer still `execvp()`s the original argv path — only matching invocations resolve after `pivot_root`.
-- `fd_tables.c` is one global table shared across all traced processes, not scoped per PID.
-- Enforcement is post-hoc `SIGKILL`, not syscall interception — the flagged call has already run.
-- No training dataset or accuracy numbers ship with `syscall_model.pkl`.
+SysTrace is a **research/learning dynamic-analysis tool**, not a hardened security boundary or production EDR.
 
-Run only against binaries you own or have permission to inspect, preferably in a VM — the sandbox is not a hardened security boundary.
+Important limitations:
+
+- Only a single target is analyzed per run.
+- Enforcement occurs through `SIGKILL` after detection; it is not kernel-level syscall blocking.
+- The sandbox uses Linux user/PID/mount namespaces and `pivot_root`.
+- Unprivileged user namespaces must be enabled.
+- The minimal root filesystem contains only the target and selected runtime libraries.
+- Dynamically linked binaries with additional dependencies may fail inside the sandbox.
+- The sandbox runtime currently assumes x86-64 library paths.
+- File-descriptor tracking is global rather than PID-scoped.
+- The ML model has no published accuracy guarantee.
+- The rule engine and ML classifier can produce false positives and false negatives.
+- The sandbox should not be treated as a replacement for a VM or hardened container.
+
+Run SysTrace only against binaries you own or are authorized to analyze.
+
+For untrusted binaries, use a dedicated VM or other appropriately isolated environment.
 
 ## Version
 
-SysTrace 2.0
+**SysTrace 2.0**

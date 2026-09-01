@@ -82,8 +82,12 @@ static int child_function(void *arg)
         return 1;
     }
 
-    execvp(target_argv[0], target_argv);
+char *argv[] = {
+    "/basic_target",
+    NULL
+};
 
+execv("/basic_target", argv);
     perror("execvp");
     return 1;
 }
